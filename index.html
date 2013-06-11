@@ -1,0 +1,75 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Emperor by ElDeveloper</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Emperor</h1>
+        <p>Interactive visualization of hight throughput microbial ecology datasets</p>
+
+        <p class="view"><a href="https://github.com/ElDeveloper/emperor">View the Project on GitHub <small>ElDeveloper/emperor</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/ElDeveloper/emperor/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/ElDeveloper/emperor/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/ElDeveloper/emperor">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h1>
+<a name="emperor" class="anchor" href="#emperor"><span class="octicon octicon-link"></span></a>Emperor</h1>
+
+<p><a href="http://ci.qiime.org/job/Emperor/"><img src="http://ci.qiime.org/job/Emperor/badge/icon" alt="Build Status"></a></p>
+
+<p>Emperor is a next-generation tool for the analysis and visualization of large microbial ecology datasets; amongst many features Emperor provides a modern user interface that will rapidly adjust to your daily workflow.</p>
+
+<p>To start using Emperor, please refer to the <a href="INSTALL.md">installation notes</a>.</p>
+
+<h2>
+<a name="usage-examples" class="anchor" href="#usage-examples"><span class="octicon octicon-link"></span></a>Usage examples</h2>
+
+<p>The main interface to create Emperor visualizations is the <code>make_emperor.py</code> script, inputing a mapping file and a PCoA data file, will generate an Emperor graphical user interface to analize and visualize your data.</p>
+
+<p>If you have a QIIME compliant mapping file and a PCoA file, try the following command from a terminal session:</p>
+
+<div class="highlight"><pre>make_emperor.py -i unweighted_unifrac_pc.txt -m mapping_file.txt
+</pre></div>
+
+<p>That command will create a new directory called emperor, there you will find a file called <code>index.html</code> open it with Google Chrome to start visualizing and interacting with your data.</p>
+
+<p>Similarly if you have a study expressed over a gradient, for example a study where you have multiple samples over time, you can use this metadata with your visualization using the <code>-a</code> option:</p>
+
+<div class="highlight"><pre>make_emperor.py -i unweighted_unifrac_pc_time.txt -m mapping_with_time.txt -a TIMEPOINT
+</pre></div>
+
+<p>Some build examples are bundled with every Emperor repository, you can begin exploring some sample data using <strong>Google Chrome</strong>:</p>
+
+<ul>
+<li>To see an example of a simple PCoA plot, see this <a href="http://htmlpreview.github.io/?https://github.com/qiime/emperor/blob/master/tests/scripts_test_data/make_emperor/emperor_output/index.html">link</a>.</li>
+<li>To see an example of a Jackknifed plot, see this <a href="http://htmlpreview.github.io/?https://github.com/qiime/emperor/blob/master/tests/scripts_test_data/make_emperor/jackknifed_pcoa/index.html">link</a>.</li>
+<li>To see an example of a PCoA Biplot, see this <a href="http://htmlpreview.github.io/?https://github.com/qiime/emperor/blob/master/tests/scripts_test_data/make_emperor/biplot/index.html">link</a>.</li>
+<li>To see an example of a PCoA plot with connecting lines between samples, see this <a href="http://htmlpreview.github.io/?https://github.com/qiime/emperor/blob/master/tests/scripts_test_data/make_emperor/vectors/index.html">link</a>.</li>
+<li>To see an example of a PCoA plot with connecting lines between samples and an explicit axis, see this <a href="http://htmlpreview.github.io/?https://github.com/qiime/emperor/blob/master/tests/scripts_test_data/make_emperor/sorted_by_DOB/index.html">link</a>.</li>
+</ul>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/ElDeveloper">ElDeveloper</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
