@@ -7148,6 +7148,7 @@ THREE.Projector = function () {
 						_line.z = Math.max( _clippedVertex1PositionScreen.z, _clippedVertex2PositionScreen.z );
 
 						_line.material = object.material;
+                        _line.id = object.id;
 
 						if ( object.material.vertexColors === THREE.VertexColors ) {
 
@@ -12953,13 +12954,14 @@ THREE.ParticleSystem.prototype.clone = function ( object ) {
  * @author mrdoob / http://mrdoob.com/
  */
 
-THREE.Line = function ( geometry, material, type ) {
+THREE.Line = function ( geometry, material, type, id ) {
 
 	THREE.Object3D.call( this );
 
 	this.geometry = geometry;
 	this.material = ( material !== undefined ) ? material : new THREE.LineBasicMaterial( { color: Math.random() * 0xffffff } );
 	this.type = ( type !== undefined ) ? type : THREE.LineStrip;
+    this.id = id;
 
 	if ( this.geometry ) {
 
@@ -37430,6 +37432,7 @@ THREE.SVGRenderer = function () {
 
 		_svgNode = getLineNode( _lineCount ++ );
 
+		_svgNode.setAttribute( 'id', element.id );
 		_svgNode.setAttribute( 'x1', v1.positionScreen.x );
 		_svgNode.setAttribute( 'y1', v1.positionScreen.y );
 		_svgNode.setAttribute( 'x2', v2.positionScreen.x );
