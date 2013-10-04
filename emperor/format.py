@@ -680,6 +680,8 @@ document.getElementById("logotable").style.display = 'none';
             <input name="saveas_name" id="saveas_name" value="screenshot" type="text"/>
             <input id="saveas" class="button" type="submit" value="Save as SVG" style="" onClick="saveSVG()"/>
             <br>
+            <input id="multisaveas" class="button" type="submit" value="Multishot" style="" onClick="do_multi_SVG()"/>
+            <br>
             Create labels? <input id="saveas_legends" class="checkbox" type="checkbox" style="">
             <br><br>
             For a PNG, simply press 'ctrl+p'.

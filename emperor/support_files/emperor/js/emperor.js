@@ -308,7 +308,7 @@ function toggleContinuousAndDiscreteColors(element){
 */
 function getColorList(vals) {
 	var colors = {};
-
+	startTimer();
 	// cases with one or two categories are basically the same no matter if the
 	// coloring scheme is continuous or discrete; choose red or red and blue
 	if(vals.length == 1){
@@ -322,18 +322,26 @@ function getColorList(vals) {
 		colors[vals[1]].setHex("0x0000ff");
 	}
 	else {
-		for(var index in vals){
-			colors[vals[index]] = new THREE.Color();
-			if(g_useDiscreteColors){
+		if(g_useDiscreteColors){
+			for(var index in vals){
+				if (colors[vals[index]] === undefined){
+					colors[vals[index]] = new THREE.Color();
+				}
 				// get the next available color
 				colors[vals[index]].setHex(getDiscreteColor(index)*1);
 			}
-			else{
+		}
+		else{
+			for(var index in vals){
+				if (colors[vals[index]] === undefined){
+					colors[vals[index]] = new THREE.Color();
+				}
 				// multiplying the value by 0.66 makes the colormap go R->G->B
 				THREE.ColorConverter.setHSV(colors[vals[index]], index*.66/vals.length, 1, 1)
 			}
 		}
 	}
+	stopTimer('color conversion');
 	return colors;
 }
 
@@ -407,6 +415,7 @@ function colorByMenuChanged() {
 	colors = getColorList(vals);
 	
 	// build the colorby table in HTML
+	startTimer();
 	var lines = "<table id='colorbylist_table'>";
 	for(var i in vals){
 		// each field is identified by the value it has in the deduplicated
@@ -428,7 +437,9 @@ function colorByMenuChanged() {
 	}
 	lines += "</table>";
 	document.getElementById("colorbylist").innerHTML = lines;
+	stopTimer('setting up the HTML');
 
+	startTimer();
 	for(var i in vals){
 		// each field is identified by the value it has in the deduplicated
 		// list of values and by the number of the column in the mapping
@@ -455,6 +466,7 @@ function colorByMenuChanged() {
 				}
 		});
 	}
+	stopTimer('updating the color pickers');
 
 	colorParallelPlots(vals, colors);
 	setKey(vals, colors);
@@ -1636,7 +1648,7 @@ function drawEdges(){
   This will take the current webGL renderer, convert it to SVG and then generate 
   a file to download. Additionally it will create the labels if this option is selected.
 */
-function saveSVG(button){
+function saveSVG(button, sample_id){
     // add a name subfix for the filenames
     if ((g_segments<=8 && g_visiblePoints>=10000) || (g_segments>8 && g_visiblePoints>=5000)) {
         var res = confirm("The number of segments (" + g_segments + ") combined with the number " +
@@ -1655,17 +1667,22 @@ function saveSVG(button){
     var rendererBackgroundColor = new THREE.Color();
     rendererBackgroundColor.setHex(color.replace('#','0x'));
 
+    startTimer();
 	var svgRenderer = new THREE.SVGRenderer({ antialias: true, preserveDrawingBuffer: true }); 
 	// this is the proper way to set the color of the background but it doesn't work   
     svgRenderer.setClearColor(rendererBackgroundColor, 1);
     svgRenderer.setSize(width, height);
     svgRenderer.render(g_mainScene, g_sceneCamera);
     svgRenderer.sortObjects = true;
-        
+    stopTimer("creating the SVGRenderer")
+
+    startTimer();
     // converting svgRenderer to string: http://stackoverflow.com/questions/17398134/three-svgrenderer-save-text-of-image
     var XMLS = new XMLSerializer(); 
     var svgfile = XMLS.serializeToString(svgRenderer.domElement);
-    
+    stopTimer("serializing");
+
+    startTimer();
     // hacking the color to the svg
     var index = svgfile.indexOf('viewBox="')+9;
     var viewBox = svgfile.substring(index, svgfile.indexOf('"',index))
@@ -1674,12 +1691,16 @@ function saveSVG(button){
         viewBox[1] + '" x="' + viewBox[0] + '" stroke-width="0" stroke="#000000" fill="' + color + '"/>'
     index = svgfile.indexOf('>',index)+1;
     svgfile = svgfile.substr(0, index) + background + svgfile.substr(index);
-    
+    stopTimer("Hacking the color");
+
+
+    startTimer();
     // adding xmlns header to open in the browser 
     svgfile = svgfile.replace('viewBox=', 'xmlns="http://www.w3.org/2000/svg" viewBox=')
     saveAs(new Blob([svgfile], {type: "text/plain;charset=utf-8"}), 
-         $('#saveas_name').val() + ".svg");
-    
+         $('#saveas_name').val() + "_" + sample_id + "");
+    stopTimer("saving the file");
+
     if ($('#saveas_legends').is(':checked')) {
         var labels_text = '', pos_y = 1, increment = 40, max_len = 0, font_size = 12;
         $('#colorbylist_table tr div').each(function() {
@@ -1704,6 +1725,25 @@ function saveSVG(button){
     }
     
     $('body').css('cursor','default');
+}
+
+
+function do_multi_SVG(){
+	console.log('This is  the value of length: %d', document.getElementById('colorbycombo').length)
+
+	// lower opacity for all elements
+	for (var sample_id in g_plotSpheres){
+		g_plotSpheres[sample_id].material.opacity = 0.40;
+		g_plotSpheres[sample_id].scale.set(0.5, 0.5, 0.5);
+	}
+
+	for (var sample_id in g_plotSpheres){
+		g_plotSpheres[sample_id].scale.set(2, 2, 2);
+		g_plotSpheres[sample_id].material.opacity = 1.0;
+		saveSVG(null, sample_id);
+		g_plotSpheres[sample_id].scale.set(0.5, 0.5, 0.5);
+		g_plotSpheres[sample_id].material.opacity = 0.40;
+	}
 }
 
 /*Utility function to draw two-vertices lines at a time
