@@ -1451,7 +1451,7 @@ function drawEllipses() {
 function drawSpheres() {
 	for(var sid in g_spherePositions){
 		//draw ball
-		var mesh = new THREE.Mesh( g_genericSphere, new THREE.MeshLambertMaterial() );
+		var mesh = new THREE.Mesh( g_genericSphere, new THREE.MeshLambertMaterial(), sid);
 		mesh.material.color = new THREE.Color()
 		mesh.material.transparent = true;
 		mesh.material.depthWrite = false;
@@ -1697,8 +1697,8 @@ function saveSVG(button, sample_id){
     startTimer();
     // adding xmlns header to open in the browser 
     svgfile = svgfile.replace('viewBox=', 'xmlns="http://www.w3.org/2000/svg" viewBox=')
-    saveAs(new Blob([svgfile], {type: "text/plain;charset=utf-8"}), 
-         $('#saveas_name').val() + "_" + sample_id + "");
+    var theBlob = new Blob([svgfile], {type: "text/plain;charset=utf-8"});
+    saveAs(theBlob, "screenshot" + "_" + sample_id + "");
     stopTimer("saving the file");
 
     if ($('#saveas_legends').is(':checked')) {
@@ -1731,18 +1731,48 @@ function saveSVG(button, sample_id){
 function do_multi_SVG(){
 	console.log('This is  the value of length: %d', document.getElementById('colorbycombo').length)
 
+	for (var sample_id in g_plotSpheres){
+		g_plotSpheres[sample_id].material.opacity = 0.50;
+		g_plotSpheres[sample_id].scale.set(0.4, 0.4, 0.4);
+	}
+	saveSVG(null, 'GLOBAL');
+
 	// lower opacity for all elements
 	for (var sample_id in g_plotSpheres){
-		g_plotSpheres[sample_id].material.opacity = 0.40;
-		g_plotSpheres[sample_id].scale.set(0.5, 0.5, 0.5);
+		g_mainScene.remove(g_plotSpheres[sample_id]);
+		g_elementsGroup.remove(g_plotSpheres[sample_id]);
 	}
 
+	var counter = 0;
+
 	for (var sample_id in g_plotSpheres){
-		g_plotSpheres[sample_id].scale.set(2, 2, 2);
+
+		g_mainScene.add(g_plotSpheres[sample_id]);
+		g_elementsGroup.add(g_plotSpheres[sample_id]);
+		g_plotSpheres[sample_id].scale.set(3, 3, 3);
 		g_plotSpheres[sample_id].material.opacity = 1.0;
-		saveSVG(null, sample_id);
-		g_plotSpheres[sample_id].scale.set(0.5, 0.5, 0.5);
-		g_plotSpheres[sample_id].material.opacity = 0.40;
+
+		saveSVG(null, sample_id+"_huge");
+
+		g_mainScene.remove(g_plotSpheres[sample_id]);
+		g_elementsGroup.remove(g_plotSpheres[sample_id]);
+
+		// g_plotSpheres[sample_id].scale.set(0.5, 0.5, 0.5);
+		// g_plotSpheres[sample_id].material.opacity = 0.40;
+		// saveSVG(null, sample_id+"_small");
+		counter = counter +1;
+
+		if (counter == 10){
+			break;
+		}
+	}
+
+
+	for (var sample_id in g_plotSpheres){
+		g_mainScene.add(g_plotSpheres[sample_id]);
+		g_elementsGroup.add(g_plotSpheres[sample_id]);
+		g_plotSpheres[sample_id].material.opacity = 1.0;
+		g_plotSpheres[sample_id].scale.set(1, 1, 1);
 	}
 }
 
@@ -2280,9 +2310,9 @@ $(document).ready(function() {
 	}
 
 	function animate() {
-		requestAnimationFrame( animate );
+		// requestAnimationFrame( animate );
 
-		render();
+		// render();
 
 		var labelCoordinates;
 
