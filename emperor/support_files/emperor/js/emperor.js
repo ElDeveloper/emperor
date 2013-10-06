@@ -1762,9 +1762,9 @@ function do_multi_SVG(){
 		// saveSVG(null, sample_id+"_small");
 		counter = counter +1;
 
-		if (counter == 10){
-			break;
-		}
+		// if (counter == 10){
+		// 	break;
+		// }
 	}
 
 
