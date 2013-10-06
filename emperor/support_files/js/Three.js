@@ -7106,6 +7106,7 @@ THREE.Projector = function () {
 					_centroid.copy( _face.centroidModel ).applyProjection( _viewProjectionMatrix );
 
 					_face.z = _centroid.z;
+					_face.id = object.id
 
 					_renderData.elements.push( _face );
 
@@ -12994,10 +12995,10 @@ THREE.Line.prototype.clone = function ( object ) {
  * @author jonobr1 / http://jonobr1.com/
  */
 
-THREE.Mesh = function ( geometry, material ) {
+THREE.Mesh = function ( geometry, material, id ) {
 
 	THREE.Object3D.call( this );
-
+	this.id = id;
 	this.geometry = null;
 	this.material = null;
 
@@ -37261,8 +37262,8 @@ THREE.SVGRenderer = function () {
 				}
 
 			} else if ( element instanceof THREE.RenderableFace3 ) {
-
 				_v1 = element.v1; _v2 = element.v2; _v3 = element.v3;
+				_id = element.id;
 
 				if ( _v1.positionScreen.z < -1 || _v1.positionScreen.z > 1 ) continue;
 				if ( _v2.positionScreen.z < -1 || _v2.positionScreen.z > 1 ) continue;
@@ -37280,13 +37281,13 @@ THREE.SVGRenderer = function () {
 
 				if ( _clipBox.isIntersectionBox( _elemBox ) === true ) {
 
-					renderFace3( _v1, _v2, _v3, element, material );
+					renderFace3( _v1, _v2, _v3, element, material, _id );
 
 				}
 
 			} else if ( element instanceof THREE.RenderableFace4 ) {
-
 				_v1 = element.v1; _v2 = element.v2; _v3 = element.v3; _v4 = element.v4;
+				_id = element.id;
 
 				if ( _v1.positionScreen.z < -1 || _v1.positionScreen.z > 1 ) continue;
 				if ( _v2.positionScreen.z < -1 || _v2.positionScreen.z > 1 ) continue;
@@ -37307,7 +37308,7 @@ THREE.SVGRenderer = function () {
 
 				if ( _clipBox.isIntersectionBox( _elemBox ) === true ) {
 
-					renderFace4( _v1, _v2, _v3, _v4, element, material );
+					renderFace4( _v1, _v2, _v3, _v4, element, material, _id);
 
 				}
 
@@ -37445,12 +37446,13 @@ THREE.SVGRenderer = function () {
 
 	}
 
-	function renderFace3( v1, v2, v3, element, material ) {
+	function renderFace3( v1, v2, v3, element, material, id ) {
 
 		_this.info.render.vertices += 3;
 		_this.info.render.faces ++;
 
 		_svgNode = getPathNode( _pathCount ++ );
+		_svgNode.setAttribute('id', id)
 		_svgNode.setAttribute( 'd', 'M ' + v1.positionScreen.x + ' ' + v1.positionScreen.y + ' L ' + v2.positionScreen.x + ' ' + v2.positionScreen.y + ' L ' + v3.positionScreen.x + ',' + v3.positionScreen.y + 'z' );
 
 		if ( material instanceof THREE.MeshBasicMaterial ) {
@@ -37506,12 +37508,13 @@ THREE.SVGRenderer = function () {
 
 	}
 
-	function renderFace4( v1, v2, v3, v4, element, material ) {
+	function renderFace4( v1, v2, v3, v4, element, material, id ) {
 
 		_this.info.render.vertices += 4;
 		_this.info.render.faces ++;
 
 		_svgNode = getPathNode( _pathCount ++ );
+		_svgNode.setAttribute( 'id', id )
 		_svgNode.setAttribute( 'd', 'M ' + v1.positionScreen.x + ' ' + v1.positionScreen.y + ' L ' + v2.positionScreen.x + ' ' + v2.positionScreen.y + ' L ' + v3.positionScreen.x + ',' + v3.positionScreen.y + ' L ' + v4.positionScreen.x + ',' + v4.positionScreen.y + 'z' );
 
 		if ( material instanceof THREE.MeshBasicMaterial ) {
