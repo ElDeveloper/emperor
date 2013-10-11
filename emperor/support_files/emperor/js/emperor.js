@@ -1713,20 +1713,19 @@ function saveSVG(button, sample_id){
     match = pc3_label_x_regex.exec(svgfile);
     var pc3_label_x = match[1];
     match = pc3_label_y_regex.exec(svgfile);
-    var pc3_label_y = match[1];
-
+    var pc3_label_y =  match[1];
 
     var pc1_axis_label = '<text fill="#FFFFFF" stroke="#FFFFFF" ' +
-        'x="' + pc1_label_x + '" ' +
+        'x="' + (parseFloat(pc1_label_x)+4.0).toString() + '" ' +
         'y="' + pc1_label_y + '">' +
         g_pc1Label + '</text>'
     var pc2_axis_label = '<text fill="#FFFFFF" stroke="#FFFFFF" ' +
         'x="' + pc2_label_x + '" ' +
-        'y="' + pc2_label_y + '">' +
+        'y="' + (parseFloat(pc2_label_y)-4.0).toString() + '">' +
         g_pc2Label + '</text>'
     var pc3_axis_label = '<text fill="#FFFFFF" stroke="#FFFFFF" ' +
         'x="' + pc3_label_x + '" ' +
-        'y="' + pc3_label_y + '">' +
+        'y="' + (parseFloat(pc3_label_y)+15.0).toString() + '">' +
         g_pc3Label + '</text>'
 
     svgfile = svgfile.substr(0, index) + background + pc1_axis_label +
