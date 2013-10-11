@@ -1690,11 +1690,48 @@ function saveSVG(button, sample_id){
     var background = '<rect id="background" height="' + viewBox[3] + '" width="' + viewBox[2] + '" y="' + 
         viewBox[1] + '" x="' + viewBox[0] + '" stroke-width="0" stroke="#000000" fill="' + color + '"/>'
     index = svgfile.indexOf('>',index)+1;
-    svgfile = svgfile.substr(0, index) + background + svgfile.substr(index);
-    stopTimer("Hacking the color");
+
+    // hacking the axis labels in there
+    var match;
+
+    var pc1_label_x_regex = /<line id="pc1".*?x1="(.*?)"/g;
+    var pc1_label_y_regex = /<line id="pc1".*?y1="(.*?)"/g;
+    match = pc1_label_x_regex.exec(svgfile);
+    var pc1_label_x = match[1];
+    match = pc1_label_y_regex.exec(svgfile);
+    var pc1_label_y = match[1];
+
+    var pc2_label_x_regex = /<line id="pc2".*?x1="(.*?)"/g;
+    var pc2_label_y_regex = /<line id="pc2".*?y1="(.*?)"/g;
+    match = pc2_label_x_regex.exec(svgfile);
+    var pc2_label_x = match[1];
+    match = pc2_label_y_regex.exec(svgfile);
+    var pc2_label_y = match[1];
+
+    var pc3_label_x_regex = /<line id="pc3".*?x1="(.*?)"/g;
+    var pc3_label_y_regex = /<line id="pc3".*?y1="(.*?)"/g;
+    match = pc3_label_x_regex.exec(svgfile);
+    var pc3_label_x = match[1];
+    match = pc3_label_y_regex.exec(svgfile);
+    var pc3_label_y = match[1];
 
 
-    startTimer();
+    var pc1_axis_label = '<text fill="#FFFFFF" stroke="#FFFFFF" ' +
+        'x="' + pc1_label_x + '" ' +
+        'y="' + pc1_label_y + '">' +
+        g_pc1Label + '</text>'
+    var pc2_axis_label = '<text fill="#FFFFFF" stroke="#FFFFFF" ' +
+        'x="' + pc2_label_x + '" ' +
+        'y="' + pc2_label_y + '">' +
+        g_pc2Label + '</text>'
+    var pc3_axis_label = '<text fill="#FFFFFF" stroke="#FFFFFF" ' +
+        'x="' + pc3_label_x + '" ' +
+        'y="' + pc3_label_y + '">' +
+        g_pc3Label + '</text>'
+
+    svgfile = svgfile.substr(0, index) + background + pc1_axis_label +
+        pc2_axis_label + pc3_axis_label + svgfile.substr(index);
+
     // adding xmlns header to open in the browser 
     svgfile = svgfile.replace('viewBox=', 'xmlns="http://www.w3.org/2000/svg" viewBox=')
     var theBlob = new Blob([svgfile], {type: "text/plain;charset=utf-8"});
@@ -1783,7 +1820,7 @@ function do_multi_SVG(){
   start and end point must be 3 elements array. The color must be a hex-string
   or a hex number.
 */
-function makeLine(coords_a, coords_b, color, width){
+function makeLine(coords_a, coords_b, color, width, id){
 	// based on the example described in:
 	// https://github.com/mrdoob/three.js/wiki/Drawing-lines
 	var material, geometry, line;
@@ -1800,7 +1837,7 @@ function makeLine(coords_a, coords_b, color, width){
 	geometry.vertices.push(new THREE.Vector3(coords_b[0], coords_b[1], coords_b[2]));
 
 	// the line will contain the two vertices and the described material
-	line = new THREE.Line(geometry, material);
+	line = new THREE.Line(geometry, material, THREE.LineStrip, id);
 
 	return line;
 }
@@ -1825,11 +1862,11 @@ function drawAxisLines() {
 
 	// one line for each of the axes
 	g_xAxisLine = makeLine([g_xMinimumValue, g_yMinimumValue, g_zMinimumValue],
-		[g_xMaximumValue, g_yMinimumValue, g_zMinimumValue], axesColorFromColorPicker, 3);
+		[g_xMaximumValue, g_yMinimumValue, g_zMinimumValue], axesColorFromColorPicker, 3, "pc1");
 	g_yAxisLine = makeLine([g_xMinimumValue, g_yMinimumValue, g_zMinimumValue],
-		[g_xMinimumValue, g_yMaximumValue, g_zMinimumValue], axesColorFromColorPicker, 3);
+		[g_xMinimumValue, g_yMaximumValue, g_zMinimumValue], axesColorFromColorPicker, 3, "pc2");
 	g_zAxisLine = makeLine([g_xMinimumValue, g_yMinimumValue, g_zMinimumValue],
-		[g_xMinimumValue, g_yMinimumValue, g_zMaximumValue], axesColorFromColorPicker, 3);
+		[g_xMinimumValue, g_yMinimumValue, g_zMaximumValue], axesColorFromColorPicker, 3, "pc3");
 
 	// axes shouldn't be transparent
 	g_xAxisLine.material.transparent = false;
