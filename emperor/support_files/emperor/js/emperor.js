@@ -1667,6 +1667,8 @@ function saveSVG(button, sample_id){
     var rendererBackgroundColor = new THREE.Color();
     rendererBackgroundColor.setHex(color.replace('#','0x'));
 
+    var labelsColor = $("#axeslabelscolor").spectrum("get").toHexString(true);
+
     startTimer();
 	var svgRenderer = new THREE.SVGRenderer({ antialias: true, preserveDrawingBuffer: true }); 
 	// this is the proper way to set the color of the background but it doesn't work   
@@ -1715,15 +1717,15 @@ function saveSVG(button, sample_id){
     match = pc3_label_y_regex.exec(svgfile);
     var pc3_label_y =  match[1];
 
-    var pc1_axis_label = '<text fill="#FFFFFF" stroke="#FFFFFF" ' +
+    var pc1_axis_label = '<text fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
         'x="' + (parseFloat(pc1_label_x)+4.0).toString() + '" ' +
         'y="' + pc1_label_y + '">' +
         g_pc1Label + '</text>'
-    var pc2_axis_label = '<text fill="#FFFFFF" stroke="#FFFFFF" ' +
+    var pc2_axis_label = '<text fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
         'x="' + pc2_label_x + '" ' +
         'y="' + (parseFloat(pc2_label_y)-4.0).toString() + '">' +
         g_pc2Label + '</text>'
-    var pc3_axis_label = '<text fill="#FFFFFF" stroke="#FFFFFF" ' +
+    var pc3_axis_label = '<text fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
         'x="' + pc3_label_x + '" ' +
         'y="' + (parseFloat(pc3_label_y)+15.0).toString() + '">' +
         g_pc3Label + '</text>'
@@ -1746,8 +1748,8 @@ function saveSVG(button, sample_id){
     stopTimer("saving the file");
 
     // if it's a multishot call then make sure you only print the labels once
-    if ($('#saveas_legends').is(':checked') && button != null && sample_id != '.GLOBAL' ||
-        $('#saveas_legends').is(':checked') && button == null && sample_id == '.GLOBAL') {
+    if (($('#saveas_legends').is(':checked') && button === undefined && sample_id == '') ||
+        ($('#saveas_legends').is(':checked') && button == null && sample_id == '.GLOBAL')) {
         var labels_text = '', pos_y = 1, increment = 40, max_len = 0, font_size = 12;
         $('#colorbylist_table tr div').each(function() {
             if ($(this).attr('name').length > max_len) max_len = $(this).attr('name').length 
@@ -2349,9 +2351,9 @@ $(document).ready(function() {
 	}
 
 	function animate() {
-		// requestAnimationFrame( animate );
+		requestAnimationFrame( animate );
 
-		// render();
+		render();
 
 		var labelCoordinates;
 
