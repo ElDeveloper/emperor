@@ -1734,7 +1734,7 @@ function saveSVG(button, sample_id){
     // adding xmlns header to open in the browser 
     svgfile = svgfile.replace('viewBox=', 'xmlns="http://www.w3.org/2000/svg" viewBox=')
     var theBlob = new Blob([svgfile], {type: "text/plain;charset=utf-8"});
-    saveAs(theBlob, "screenshot" + "_" + sample_id + "");
+    saveAs(theBlob, $('#saveas_name').val() + "_" + sample_id + "");
     stopTimer("saving the file");
 
     if ($('#saveas_legends').is(':checked')) {
