@@ -1731,13 +1731,23 @@ function saveSVG(button, sample_id){
     svgfile = svgfile.substr(0, index) + background + pc1_axis_label +
         pc2_axis_label + pc3_axis_label + svgfile.substr(index);
 
+    // must be undefined and not null
+    if (sample_id === undefined){
+        sample_id = '';
+    }
+    else{
+        sample_id = '.'+sample_id;
+    }
+
     // adding xmlns header to open in the browser 
     svgfile = svgfile.replace('viewBox=', 'xmlns="http://www.w3.org/2000/svg" viewBox=')
     var theBlob = new Blob([svgfile], {type: "text/plain;charset=utf-8"});
-    saveAs(theBlob, $('#saveas_name').val() + "_" + sample_id + "");
+    saveAs(theBlob, $('#saveas_name').val() + sample_id );
     stopTimer("saving the file");
 
-    if ($('#saveas_legends').is(':checked')) {
+    // if it's a multishot call then make sure you only print the labels once
+    if ($('#saveas_legends').is(':checked') && button != null && sample_id != '.GLOBAL' ||
+        $('#saveas_legends').is(':checked') && button == null && sample_id == '.GLOBAL') {
         var labels_text = '', pos_y = 1, increment = 40, max_len = 0, font_size = 12;
         $('#colorbylist_table tr div').each(function() {
             if ($(this).attr('name').length > max_len) max_len = $(this).attr('name').length 
@@ -1757,7 +1767,7 @@ function saveSVG(button, sample_id){
             '</g></svg>';
         
         saveAs(new Blob([labels_text], {type: "text/plain;charset=utf-8"}), 
-            $('#saveas_name').val() + "_labels.svg");
+            $('#saveas_name').val() + ".labels");
     }
     
     $('body').css('cursor','default');
