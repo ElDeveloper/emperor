@@ -1660,8 +1660,8 @@ function saveSVG(button, sample_id){
  
     $('body').css('cursor','progress');
     
-    var width = document.getElementById('pcoaPlotWrapper').offsetWidth;
-    var height = document.getElementById('pcoaPlotWrapper').offsetHeight;
+    var width = 1024;//document.getElementById('pcoaPlotWrapper').offsetWidth;
+    var height = 1024;//document.getElementById('pcoaPlotWrapper').offsetHeight;
     
     var color = $("#rendererbackgroundcolor").spectrum("get").toHexString(true);
     var rendererBackgroundColor = new THREE.Color();
@@ -1803,14 +1803,7 @@ function do_multi_SVG(){
 		g_mainScene.remove(g_plotSpheres[sample_id]);
 		g_elementsGroup.remove(g_plotSpheres[sample_id]);
 
-		// g_plotSpheres[sample_id].scale.set(0.5, 0.5, 0.5);
-		// g_plotSpheres[sample_id].material.opacity = 0.40;
-		// saveSVG(null, sample_id+"_small");
 		counter = counter +1;
-
-		// if (counter == 10){
-		// 	break;
-		// }
 	}
 
 
