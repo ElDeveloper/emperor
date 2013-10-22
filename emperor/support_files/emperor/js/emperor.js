@@ -1666,9 +1666,12 @@ function saveSVG(button, sample_id){
  
     $('body').css('cursor','progress');
     
-    var width = 1024;//document.getElementById('pcoaPlotWrapper').offsetWidth;
-    var height = 1024;//document.getElementById('pcoaPlotWrapper').offsetHeight;
-    
+    // force to this size and update the projection matrix of the camera
+    var width = 1024;
+    var height = 1024;
+    g_sceneCamera.aspect = width/height;
+    g_sceneCamera.updateProjectionMatrix();
+
     var color = $("#rendererbackgroundcolor").spectrum("get").toHexString(true);
     var rendererBackgroundColor = new THREE.Color();
     rendererBackgroundColor.setHex(color.replace('#','0x'));
