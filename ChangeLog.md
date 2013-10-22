@@ -1,5 +1,10 @@
-Emperor 0.9.1 (changes since Emperor 0.9.0 go here)
+Emperor 0.9.2 (changes since Emperor 0.9.1 go here)
 ===================================================
+
+
+
+Emperor 0.9.1 (21 Oct 2013)
+===========================
 
 *New features*
 
@@ -21,6 +26,10 @@ Emperor 0.9.1 (changes since Emperor 0.9.0 go here)
 * Labels for biplots now have a color picker.
 * Add color pickers for connecting bars in coordinate comparison plots.
 * Add option to select a master set of coordinates when making a comparison plot.
+* Adds a feature to negate axes. With this feature you can negate the coordinates of each data point. As a result, the spheres and/or edges will be adjusted appropriately. 
+* Minor additions to the separator controller for the side bar.
+* As of 308629f550ff3e108903d3bcf1ce76ce85f4cb96 Emperor is now released under a BSD license.
+
 
 *Bug Fixes*
 
@@ -31,6 +40,10 @@ Emperor 0.9.1 (changes since Emperor 0.9.0 go here)
 * Comparison bars checkbox now accurately reflects status of the visiblity rather than opposite.
 * Scaling by percent explained now works with vectors and coordinate comparison plots.
 * Fixed bug where only the first bars in coordinate comparison plots could be hidden.
+* Improved documentation for saving and exporting images.
+* Emperor now fails graciously when WebGL is not enabled and gives you a few suggestions on how to get it to work.
+
+
 
 Emperor 0.9.0 (14 May 2013)
 ===========================

@@ -5,8 +5,8 @@ from __future__ import division
 __author__ = "Antonio Gonzalez Pena"
 __copyright__ = "Copyright 2013, The Emperor Project"
 __credits__ = ["Antonio Gonzalez Pena", "Yoshiki Vazquez Baeza"]
-__license__ = "GPL"
-__version__ = "0.9.0-dev"
+__license__ = "BSD"
+__version__ = "0.9.1-dev"
 __maintainer__ = "Yoshiki Vazquez Baeza"
 __email__ = "antgonza@gmail.com"
 __status__ = "Development"

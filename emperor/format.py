@@ -5,8 +5,8 @@ from __future__ import division
 __author__ = "Antonio Gonzalez Pena"
 __copyright__ = "Copyright 2013, The Emperor Project"
 __credits__ = ["Meg Pirrung", "Antonio Gonzalez Pena", "Yoshiki Vazquez Baeza"]
-__license__ = "GPL"
-__version__ = "0.9.0-dev"
+__license__ = "BSD"
+__version__ = "0.9.1-dev"
 __maintainer__ = "Yoshiki Vazquez Baeza"
 __email__ = "yoshiki89@gmail.com"
 __status__ = "Development"
@@ -19,7 +19,6 @@ from datetime import datetime
 from StringIO import StringIO
 from socket import gethostname
 
-from cogent.util.misc import if_
 from numpy import max, min, abs, argsort, array
 
 from emperor.util import (keep_columns_from_mapping_file,
@@ -368,7 +367,8 @@ def format_comparison_bars_to_js(coords_data, coords_headers, clones,
         # coords to create the javascript object with the coordinates
         for index in xrange(0, headers_length, clones):
             # 1st object must have _0 as a suffix, trim it reveal the sample id
-            sample_id = coords_headers[index].rstrip('_0')
+            assert coords_headers[index].endswith('_0'), "There's an internal inconsistency with the sample ids"
+            sample_id = coords_headers[index][:-2]
 
             # convert all elements in the numpy array into a string before
             # formatting the elements into the javascript dictionary object
@@ -395,14 +395,16 @@ def format_emperor_html_footer_string(has_biplots=False, has_ellipses=False,
     optional_strings = []
 
     # the order of these statements matter, see _EMPEROR_FOOTER_HTML_STRING
-    optional_strings.append(if_(has_biplots, _BIPLOT_SPHERES_COLOR_SELECTOR,''))
-    optional_strings.append(if_(has_biplots, _BIPLOT_VISIBILITY_SELECTOR, ''))
-    optional_strings.append(if_(has_biplots, _TAXA_LABELS_SELECTOR, ''))
-    optional_strings.append(if_(has_biplots, _TAXA_LABELS_COLOR_SELECTOR, ''))
-    optional_strings.append(if_(has_edges, _EDGES_COLOR_SELECTOR, ''))
-    optional_strings.append(if_(has_ellipses, _ELLIPSE_OPACITY_SLIDER, ''))
-    optional_strings.append(if_(has_vectors, _VECTORS_OPACITY_SLIDER, ''))
-    optional_strings.append(if_(has_edges, _EDGES_VISIBILITY_SELECTOR, ''))
+    # we use python's built-in ternary operator to add or not a string
+    optional_strings.append(_BIPLOT_SPHERES_COLOR_SELECTOR if has_biplots else
+        '')
+    optional_strings.append(_BIPLOT_VISIBILITY_SELECTOR if has_biplots else '')
+    optional_strings.append(_TAXA_LABELS_SELECTOR if has_biplots else '')
+    optional_strings.append(_TAXA_LABELS_COLOR_SELECTOR if has_biplots else '')
+    optional_strings.append(_EDGES_COLOR_SELECTOR if has_edges else '')
+    optional_strings.append(_ELLIPSE_OPACITY_SLIDER if has_ellipses else '')
+    optional_strings.append(_VECTORS_OPACITY_SLIDER if has_vectors else '')
+    optional_strings.append(_EDGES_VISIBILITY_SELECTOR if has_edges else '')
 
     return _EMPEROR_FOOTER_HTML_STRING % tuple(optional_strings)
 
@@ -581,7 +583,7 @@ document.getElementById("logotable").style.display = 'none';
 <div id="parallelPlotWrapper" class="plotWrapper">
 </div>
 
-<div class="separator"></div>
+<div class="separator" ondblclick="separatorDoubleClick()"></div>
 
 <div id="menu">
     <div id="menutabs">
