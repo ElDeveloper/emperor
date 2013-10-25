@@ -1334,10 +1334,10 @@ function setJqueryUi() {
 	document.getElementById('labelopacity').innerHTML = $( "#lopacityslider" ).slider( "value")+"%"
 
 	//default color for axes labels is white
-	$('#axeslabelscolor').css('backgroundColor',"#FFFFFF");
+	$('#axeslabelscolor').css('backgroundColor',"#000000");
 	$("#axeslabelscolor").spectrum({
 		localStorageKey: 'key',
-		color: "#FFFFFF",
+		color: "#000000",
 		showInitial: true,
 		showInput: true,
 		showPalette: true,
@@ -1357,15 +1357,15 @@ function setJqueryUi() {
 				$("#pc1_label").css('color', c);
 				$("#pc2_label").css('color', c);
 				$("#pc3_label").css('color', c);
-
+				console.log('bashing')
 			}
 	});
 
 	//default color for the axes is white
-	$('#axescolor').css('backgroundColor',"#ffffff");
+	$('#axescolor').css('backgroundColor',"#000000");
 	$("#axescolor").spectrum({
 		localStorageKey: 'key',
-		color: "#ffffff",
+		color: "#000000",
 		showInitial: true,
 		showInput: true,
 		showPalette: true,
@@ -1392,11 +1392,11 @@ function setJqueryUi() {
 	});
 
 	// the default color palette for the background is black and white
-	$('#rendererbackgroundcolor').css('backgroundColor',"#000000");
-	$('#parallelPlotWrapper').css('backgroundColor',"#000000");
+	$('#rendererbackgroundcolor').css('backgroundColor',"#FFFFFF");
+	$('#parallelPlotWrapper').css('backgroundColor',"#FFFFFF");
 	$("#rendererbackgroundcolor").spectrum({
 		localStorageKey: 'key',
-		color: "#000000",
+		color: "#FFFFFF",
 		showInitial: true,
 		showInput: true,
 		showPalette: true,
@@ -2177,6 +2177,7 @@ function buildAxisLabels() {
 	axislabelhtml += "<label id=\"pc3_label\" class=\"unselectable labels\" style=\"position:absolute; left:"+parseInt(zcoords['x'])+"px; top:"+parseInt(zcoords['y'])+"px;\">";
 	axislabelhtml += g_pc3Label;
 	axislabelhtml += "</label>";
+
 	document.getElementById("axislabels").innerHTML = axislabelhtml;
 }
 
@@ -2343,7 +2344,7 @@ $(document).ready(function() {
 
 		// black is the default background color for the scene
 		var rendererBackgroundColor = new THREE.Color();
-		rendererBackgroundColor.setHex("0x000000");
+		rendererBackgroundColor.setHex("0xFFFFFF");
 
 		// renderer, the default background color is black
 		g_mainRenderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -2475,6 +2476,12 @@ $(document).ready(function() {
 		labelCoordinates = toScreenXY(new THREE.Vector3(g_xMinimumValue, g_yMinimumValue, g_zMaximumValue), g_sceneCamera,$('#main_plot'));
 		$("#pc3_label").css('left', labelCoordinates['x'])
 		$("#pc3_label").css('top', labelCoordinates['y'])
+
+		// Change the css color of the 3d plot labels, set colors here because buildAxesLabels reverts color to default
+		axeslabelscolor = $('#axeslabelscolor').css( "background-color" );
+		$("#pc1_label").css('color', axeslabelscolor);
+		$("#pc2_label").css('color', axeslabelscolor);
+		$("#pc3_label").css('color', axeslabelscolor);
 
 
 		// move labels when the plot is moved
