@@ -1794,18 +1794,18 @@ function do_multi_SVG(){
 
 	// set the new current category and index
 	// g_categoryName = document.getElementById('colorbycombo')[document.getElementById('colorbycombo').selectedIndex].value;
-	title_header_index = g_mappingFileHeaders.indexOf("TITLE");
+	title_header_index = g_mappingFileHeaders.indexOf("TITLE_ACRONYM");
 	if (title_header_index == -1) {
 		if (!confirm("Could not find the header TITLE in the mapping file, are"+
 			" you sure you want to use multishot?")) {
 			return
 		}
 	}
-	project_name = "The American Gut Project"
+	project_name = "AGP"
 
 	for (var sample_id in g_plotSpheres){
-		g_plotSpheres[sample_id].material.opacity = 0.50;
-		g_plotSpheres[sample_id].scale.set(0.4, 0.4, 0.4);
+		g_plotSpheres[sample_id].material.opacity = 0.700077;
+		g_plotSpheres[sample_id].scale.set(0.6, 0.6, 0.6);
 	}
 	saveSVG(null, 'GLOBAL');
 
