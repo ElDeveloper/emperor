@@ -1786,7 +1786,22 @@ function saveSVG(button, sample_id){
 
 
 function do_multi_SVG(){
-	console.log('This is  the value of length: %d', document.getElementById('colorbycombo').length)
+	if (!confirm('Printing per-sample files is resource consuming process, make'+
+		' sure you don\'t have anything critical running before clicking'+
+		' "yes".')) {
+		return
+	}
+
+	// set the new current category and index
+	// g_categoryName = document.getElementById('colorbycombo')[document.getElementById('colorbycombo').selectedIndex].value;
+	title_header_index = g_mappingFileHeaders.indexOf("TITLE");
+	if (title_header_index == -1) {
+		if (!confirm("Could not find the header TITLE in the mapping file, are"+
+			" you sure you want to use multishot?")) {
+			return
+		}
+	}
+	project_name = "The American Gut Project"
 
 	for (var sample_id in g_plotSpheres){
 		g_plotSpheres[sample_id].material.opacity = 0.50;
@@ -1802,8 +1817,9 @@ function do_multi_SVG(){
 
 	var counter = 0;
 
-	for (var sample_id in g_plotSpheres){
-
+	// rock out a single print
+	if ($('#mockup_checkbox').is(':checked')){
+		sample_id = '000001042.1076459'
 		g_mainScene.add(g_plotSpheres[sample_id]);
 		g_elementsGroup.add(g_plotSpheres[sample_id]);
 		g_plotSpheres[sample_id].scale.set(3, 3, 3);
@@ -1816,7 +1832,29 @@ function do_multi_SVG(){
 
 		counter = counter +1;
 	}
+	else{ // go for all the prints in the AGP
+		for (var sample_id in g_plotSpheres){
+			// make sure that if you are going to print a sample this sample
+			// belongs to the american gut project otherwise skip it
+			if (g_mappingFileData[sample_id][title_header_index] != project_name) {
+				continue;
+			};
 
+			g_mainScene.add(g_plotSpheres[sample_id]);
+			g_elementsGroup.add(g_plotSpheres[sample_id]);
+			g_plotSpheres[sample_id].scale.set(3, 3, 3);
+			g_plotSpheres[sample_id].material.opacity = 1.0;
+
+			saveSVG(null, sample_id+"_huge");
+
+			g_mainScene.remove(g_plotSpheres[sample_id]);
+			g_elementsGroup.remove(g_plotSpheres[sample_id]);
+
+			counter = counter +1;
+		}
+	}
+
+	console.log('A total of %d samples were printed', counter);
 
 	for (var sample_id in g_plotSpheres){
 		g_mainScene.add(g_plotSpheres[sample_id]);
@@ -1990,7 +2028,7 @@ function changeAxesDisplayed() {
 	g_pc1Label = "PC" + (g_viewingAxes[0]+1) + " (" + g_fractionExplainedRounded[g_viewingAxes[0]] + " %)";
 	g_pc2Label = "PC" + (g_viewingAxes[1]+1) + " (" + g_fractionExplainedRounded[g_viewingAxes[1]] + " %)";
 	g_pc3Label = "PC" + (g_viewingAxes[2]+1) + " (" + g_fractionExplainedRounded[g_viewingAxes[2]] + " %)";
-			
+
 	g_xMaximumValue = max_x + (max_x>=0 ? 6*g_radius : -6*g_radius);
 	g_yMaximumValue = max_y + (max_y>=0 ? 6*g_radius : -6*g_radius);
 	g_zMaximumValue = max_z + (max_z>=0 ? 6*g_radius : -6*g_radius);

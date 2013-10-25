@@ -684,6 +684,8 @@ document.getElementById("logotable").style.display = 'none';
             <br>
             <input id="multisaveas" class="button" type="submit" value="Multishot" style="" onClick="do_multi_SVG()"/>
             <br>
+            Mockup (only one sample will be saved) <input id="mockup_checkbox" class="checkbox" type="checkbox" style="">
+            <br>
             Create labels? <input id="saveas_legends" class="checkbox" type="checkbox" style="">
             <br><br>
             For a PNG, simply press 'ctrl+p'.
