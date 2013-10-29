@@ -1735,17 +1735,17 @@ function saveSVG(button, sample_id, keep_pc3){
 		var pc3_label_y =  match[1];
 	}
 
-    var pc1_axis_label = '<text fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
+    var pc1_axis_label = '<text font-size="30" fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
         'x="' + (parseFloat(pc1_label_x)+4.0).toString() + '" ' +
         'y="' + pc1_label_y + '">' +
         g_pc1Label + '</text>'
-    var pc2_axis_label = '<text fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
+    var pc2_axis_label = '<text font-size="30" fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
         'x="' + pc2_label_x + '" ' +
         'y="' + (parseFloat(pc2_label_y)-4.0).toString() + '">' +
         g_pc2Label + '</text>'
 
     if (keep_pc3){
-	    var pc3_axis_label = '<text fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
+	    var pc3_axis_label = '<text font-size="30" fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
 	        'x="' + pc3_label_x + '" ' +
 	        'y="' + (parseFloat(pc3_label_y)+15.0).toString() + '">' +
 	        g_pc3Label + '</text>'
