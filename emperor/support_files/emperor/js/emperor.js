@@ -1654,7 +1654,7 @@ function drawEdges(spherepositions){
   This will take the current webGL renderer, convert it to SVG and then generate 
   a file to download. Additionally it will create the labels if this option is selected.
 */
-function saveSVG(button, sample_id){
+function saveSVG(button, sample_id, keep_pc3){
     // add a name subfix for the filenames
     if ((g_segments<=8 && g_visiblePoints>=10000) || (g_segments>8 && g_visiblePoints>=5000)) {
         var res = confirm("The number of segments (" + g_segments + ") combined with the number " +
@@ -1664,6 +1664,12 @@ function saveSVG(button, sample_id){
         if (res==false) return;
     }
  
+ 	// unless it is explicitly requested to remove the third axis, just keep it
+    if (keep_pc3 === undefined){
+    	keep_pc3 = true;
+    	console.log('keep_pc3 is undefined at the moment so it will become false')
+    }
+
     $('body').css('cursor','progress');
     
     // force to this size and update the projection matrix of the camera
@@ -1719,12 +1725,15 @@ function saveSVG(button, sample_id){
     match = pc2_label_y_regex.exec(svgfile);
     var pc2_label_y = match[1];
 
-    var pc3_label_x_regex = /<line id="pc3".*?x1="(.*?)"/g;
-    var pc3_label_y_regex = /<line id="pc3".*?y1="(.*?)"/g;
-    match = pc3_label_x_regex.exec(svgfile);
-    var pc3_label_x = match[1];
-    match = pc3_label_y_regex.exec(svgfile);
-    var pc3_label_y =  match[1];
+
+    if (keep_pc3) {
+		var pc3_label_x_regex = /<line id="pc3".*?x1="(.*?)"/g;
+		var pc3_label_y_regex = /<line id="pc3".*?y1="(.*?)"/g;
+		match = pc3_label_x_regex.exec(svgfile);
+		var pc3_label_x = match[1];
+		match = pc3_label_y_regex.exec(svgfile);
+		var pc3_label_y =  match[1];
+	}
 
     var pc1_axis_label = '<text fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
         'x="' + (parseFloat(pc1_label_x)+4.0).toString() + '" ' +
@@ -1734,10 +1743,16 @@ function saveSVG(button, sample_id){
         'x="' + pc2_label_x + '" ' +
         'y="' + (parseFloat(pc2_label_y)-4.0).toString() + '">' +
         g_pc2Label + '</text>'
-    var pc3_axis_label = '<text fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
-        'x="' + pc3_label_x + '" ' +
-        'y="' + (parseFloat(pc3_label_y)+15.0).toString() + '">' +
-        g_pc3Label + '</text>'
+
+    if (keep_pc3){
+	    var pc3_axis_label = '<text fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
+	        'x="' + pc3_label_x + '" ' +
+	        'y="' + (parseFloat(pc3_label_y)+15.0).toString() + '">' +
+	        g_pc3Label + '</text>'
+	}
+	else{
+		pc3_axis_label = '';
+	}
 
     svgfile = svgfile.substr(0, index) + background + pc1_axis_label +
         pc2_axis_label + pc3_axis_label + svgfile.substr(index);
@@ -1786,8 +1801,8 @@ function saveSVG(button, sample_id){
 
 
 function do_multi_SVG(){
-	if (!confirm('Printing per-sample files is resource consuming process, make'+
-		' sure you don\'t have anything critical running before clicking'+
+	if (!confirm('Printing per-sample files is resource consuming process, '+
+		'make sure you don\'t have anything critical running before clicking'+
 		' "yes".')) {
 		return
 	}
@@ -1807,7 +1822,9 @@ function do_multi_SVG(){
 		g_plotSpheres[sample_id].material.opacity = 0.700077;
 		g_plotSpheres[sample_id].scale.set(0.6, 0.6, 0.6);
 	}
-	saveSVG(null, 'GLOBAL');
+	// Make sure to re-add this axis line after the printing is done
+	g_mainScene.remove(g_zAxisLine);
+	saveSVG(null, 'GLOBAL', false);
 
 	// lower opacity for all elements
 	for (var sample_id in g_plotSpheres){
@@ -1825,7 +1842,7 @@ function do_multi_SVG(){
 		g_plotSpheres[sample_id].scale.set(3, 3, 3);
 		g_plotSpheres[sample_id].material.opacity = 1.0;
 
-		saveSVG(null, sample_id+"_huge");
+		saveSVG(null, sample_id+"_huge", false);
 
 		g_mainScene.remove(g_plotSpheres[sample_id]);
 		g_elementsGroup.remove(g_plotSpheres[sample_id]);
@@ -1845,7 +1862,7 @@ function do_multi_SVG(){
 			g_plotSpheres[sample_id].scale.set(3, 3, 3);
 			g_plotSpheres[sample_id].material.opacity = 1.0;
 
-			saveSVG(null, sample_id+"_huge");
+			saveSVG(null, sample_id+"_huge", false);
 
 			g_mainScene.remove(g_plotSpheres[sample_id]);
 			g_elementsGroup.remove(g_plotSpheres[sample_id]);
@@ -1862,6 +1879,7 @@ function do_multi_SVG(){
 		g_plotSpheres[sample_id].material.opacity = 1.0;
 		g_plotSpheres[sample_id].scale.set(1, 1, 1);
 	}
+	g_mainScene.add(g_zAxisLine);
 }
 
 /*Utility function to draw two-vertices lines at a time
