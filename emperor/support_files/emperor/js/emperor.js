@@ -1654,7 +1654,7 @@ function drawEdges(spherepositions){
   This will take the current webGL renderer, convert it to SVG and then generate 
   a file to download. Additionally it will create the labels if this option is selected.
 */
-function saveSVG(button, sample_id, keep_pc3){
+function saveSVG(button, sample_id, keep_axes){
     // add a name subfix for the filenames
     if ((g_segments<=8 && g_visiblePoints>=10000) || (g_segments>8 && g_visiblePoints>=5000)) {
         var res = confirm("The number of segments (" + g_segments + ") combined with the number " +
@@ -1665,9 +1665,9 @@ function saveSVG(button, sample_id, keep_pc3){
     }
  
  	// unless it is explicitly requested to remove the third axis, just keep it
-    if (keep_pc3 === undefined){
-    	keep_pc3 = true;
-    	console.log('keep_pc3 is undefined at the moment so it will become false')
+    if (keep_axes === undefined){
+    	keep_axes = true;
+    	console.log('keep_axes is undefined at the moment so it will become false')
     }
 
     $('body').css('cursor','progress');
@@ -1711,22 +1711,21 @@ function saveSVG(button, sample_id, keep_pc3){
     // hacking the axis labels in there
     var match;
 
-    var pc1_label_x_regex = /<line id="pc1".*?x1="(.*?)"/g;
-    var pc1_label_y_regex = /<line id="pc1".*?y1="(.*?)"/g;
-    match = pc1_label_x_regex.exec(svgfile);
-    var pc1_label_x = match[1];
-    match = pc1_label_y_regex.exec(svgfile);
-    var pc1_label_y = match[1];
+    if (keep_axes) {
+		var pc1_label_x_regex = /<line id="pc1".*?x1="(.*?)"/g;
+		var pc1_label_y_regex = /<line id="pc1".*?y1="(.*?)"/g;
+		match = pc1_label_x_regex.exec(svgfile);
+		var pc1_label_x = match[1];
+		match = pc1_label_y_regex.exec(svgfile);
+		var pc1_label_y = match[1];
 
-    var pc2_label_x_regex = /<line id="pc2".*?x1="(.*?)"/g;
-    var pc2_label_y_regex = /<line id="pc2".*?y1="(.*?)"/g;
-    match = pc2_label_x_regex.exec(svgfile);
-    var pc2_label_x = match[1];
-    match = pc2_label_y_regex.exec(svgfile);
-    var pc2_label_y = match[1];
+		var pc2_label_x_regex = /<line id="pc2".*?x1="(.*?)"/g;
+		var pc2_label_y_regex = /<line id="pc2".*?y1="(.*?)"/g;
+		match = pc2_label_x_regex.exec(svgfile);
+		var pc2_label_x = match[1];
+		match = pc2_label_y_regex.exec(svgfile);
+		var pc2_label_y = match[1];
 
-
-    if (keep_pc3) {
 		var pc3_label_x_regex = /<line id="pc3".*?x1="(.*?)"/g;
 		var pc3_label_y_regex = /<line id="pc3".*?y1="(.*?)"/g;
 		match = pc3_label_x_regex.exec(svgfile);
@@ -1735,22 +1734,23 @@ function saveSVG(button, sample_id, keep_pc3){
 		var pc3_label_y =  match[1];
 	}
 
-    var pc1_axis_label = '<text font-size="30" fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
-        'x="' + (parseFloat(pc1_label_x)+4.0).toString() + '" ' +
-        'y="' + pc1_label_y + '">' +
-        g_pc1Label + '</text>'
-    var pc2_axis_label = '<text font-size="30" fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
-        'x="' + pc2_label_x + '" ' +
-        'y="' + (parseFloat(pc2_label_y)-4.0).toString() + '">' +
-        g_pc2Label + '</text>'
-
-    if (keep_pc3){
+    if (keep_axes){
+	    var pc1_axis_label = '<text font-size="30" fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
+	        'x="' + (parseFloat(pc1_label_x)+4.0).toString() + '" ' +
+	        'y="' + pc1_label_y + '">' +
+	        g_pc1Label + '</text>'
+	    var pc2_axis_label = '<text font-size="30" fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
+	        'x="' + pc2_label_x + '" ' +
+	        'y="' + (parseFloat(pc2_label_y)-4.0).toString() + '">' +
+	        g_pc2Label + '</text>'
 	    var pc3_axis_label = '<text font-size="30" fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
 	        'x="' + pc3_label_x + '" ' +
 	        'y="' + (parseFloat(pc3_label_y)+15.0).toString() + '">' +
 	        g_pc3Label + '</text>'
 	}
 	else{
+		pc1_axis_label = '';
+		pc2_axis_label = '';
 		pc3_axis_label = '';
 	}
 
@@ -1823,6 +1823,8 @@ function do_multi_SVG(){
 		g_plotSpheres[sample_id].scale.set(0.6, 0.6, 0.6);
 	}
 	// Make sure to re-add this axis line after the printing is done
+	g_mainScene.remove(g_xAxisLine);
+	g_mainScene.remove(g_yAxisLine);
 	g_mainScene.remove(g_zAxisLine);
 	saveSVG(null, 'GLOBAL', false);
 
@@ -1879,6 +1881,8 @@ function do_multi_SVG(){
 		g_plotSpheres[sample_id].material.opacity = 1.0;
 		g_plotSpheres[sample_id].scale.set(1, 1, 1);
 	}
+	g_mainScene.add(g_xAxisLine);
+	g_mainScene.add(g_yAxisLine);
 	g_mainScene.add(g_zAxisLine);
 }
 
