@@ -1819,7 +1819,7 @@ function do_multi_SVG(){
 	project_name = "AGP"
 
 	for (var sample_id in g_plotSpheres){
-		g_plotSpheres[sample_id].material.opacity = 0.700077;
+		g_plotSpheres[sample_id].material.opacity = 1;
 		g_plotSpheres[sample_id].scale.set(0.6, 0.6, 0.6);
 	}
 	// Make sure to re-add this axis line after the printing is done
@@ -1834,20 +1834,35 @@ function do_multi_SVG(){
 		g_elementsGroup.remove(g_plotSpheres[sample_id]);
 	}
 
+	var high_resolution_geometry = new THREE.SphereGeometry(g_radius, 32, 32);
+	var titanic_sphere = new THREE.Mesh( high_resolution_geometry,
+		new THREE.MeshLambertMaterial(), 'anonymous');
+	titanic_sphere.material.color = new THREE.Color()
+	titanic_sphere.material.transparent = false;
+	titanic_sphere.material.depthWrite = false;
+	titanic_sphere.material.opacity = 1;
+	titanic_sphere.position.set(0, 0, 0);
+	titanic_sphere.updateMatrix();
+	titanic_sphere.matrixAutoUpdate = true;
+	g_mainScene.add(titanic_sphere)
+	g_elementsGroup.add(titanic_sphere)
+
 	var counter = 0;
 
 	// rock out a single print
 	if ($('#mockup_checkbox').is(':checked')){
 		sample_id = '000001042.1076459'
-		g_mainScene.add(g_plotSpheres[sample_id]);
-		g_elementsGroup.add(g_plotSpheres[sample_id]);
-		g_plotSpheres[sample_id].scale.set(3, 3, 3);
-		g_plotSpheres[sample_id].material.opacity = 1.0;
+
+		// we have to set the id to this sphere so the SVG replacer can find it
+		titanic_sphere.id = sample_id;
+		titanic_sphere.scale.set(3,3,3);
+		titanic_sphere.material.opacity = 1.0;
+		titanic_sphere.position.set(g_plotSpheres[sample_id].position.x,
+			g_plotSpheres[sample_id].position.y,
+			g_plotSpheres[sample_id].position.z)
+		titanic_sphere.material.color.setHex(g_plotSpheres[sample_id].material.color.getHex());
 
 		saveSVG(null, sample_id+"_huge", false);
-
-		g_mainScene.remove(g_plotSpheres[sample_id]);
-		g_elementsGroup.remove(g_plotSpheres[sample_id]);
 
 		counter = counter +1;
 	}
@@ -1859,15 +1874,16 @@ function do_multi_SVG(){
 				continue;
 			};
 
-			g_mainScene.add(g_plotSpheres[sample_id]);
-			g_elementsGroup.add(g_plotSpheres[sample_id]);
-			g_plotSpheres[sample_id].scale.set(3, 3, 3);
-			g_plotSpheres[sample_id].material.opacity = 1.0;
+			// we have to set the id to this sphere so the SVG replacer can find it
+			titanic_sphere.id = sample_id;
+			titanic_sphere.scale.set(3,3,3);
+			titanic_sphere.material.opacity = 1.0;
+			titanic_sphere.position.set(g_plotSpheres[sample_id].position.x,
+				g_plotSpheres[sample_id].position.y,
+				g_plotSpheres[sample_id].position.z)
+			titanic_sphere.material.color.setHex(g_plotSpheres[sample_id].material.color.getHex());
 
 			saveSVG(null, sample_id+"_huge", false);
-
-			g_mainScene.remove(g_plotSpheres[sample_id]);
-			g_elementsGroup.remove(g_plotSpheres[sample_id]);
 
 			counter = counter +1;
 		}
