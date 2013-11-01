@@ -1834,7 +1834,7 @@ function do_multi_SVG(){
 		g_elementsGroup.remove(g_plotSpheres[sample_id]);
 	}
 
-	var high_resolution_geometry = new THREE.SphereGeometry(g_radius, 32, 32);
+	var high_resolution_geometry = new THREE.SphereGeometry(g_radius, 27, 27);
 	var titanic_sphere = new THREE.Mesh( high_resolution_geometry,
 		new THREE.MeshLambertMaterial(), 'anonymous');
 	titanic_sphere.material.color = new THREE.Color()
