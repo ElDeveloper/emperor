@@ -1,12 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css">
+<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap-theme.min.css">
+<script type="text/javascript" src="http://code.jquery.com/jquery.min.js"></script>
+<script src="http://netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>
+
     <meta charset="utf-8">
-    <title>Emperor</title>
+    <title>Yoshiki Vazquez-Baeza</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="">
     <meta name="author" content="">
     <link href="bootstrap/css/bootstrap.css" rel="stylesheet">
+
     <style type="text/css">
       body {
         padding-top: 20px;
@@ -92,6 +98,20 @@
   </head>
 
   <body>
+<div class="dropdown">
+  <a id="dLabel" role="button" data-toggle="dropdown" data-target="#" href="/page.html">
+    Sites of interest <span class="caret"></span>
+  </a>
+
+
+  <ul class="dropdown-menu" role="menu" aria-labelledby="dLabel">
+    <li><a href="www.icheckmovies.com">www.icheckmovies.com</a></li>
+    <li><a href="www.icheckmovies.com">www.twitter.com</a></li>
+    <li><a href="www.icheckmovies.com">www.IMDB.com</a></li>
+    <li><a href="www.icheckmovies.com">www.tumblr.com</a></li>
+  </ul>
+</div>
+
 
     <div class="container">
 
@@ -100,7 +120,7 @@
           <div class="navbar-inner">
             <div class="container">
               <ul class="nav">
-                <li class="active"><a href="#">Yoshiki</a></li>
+                <li class="active" data-toggle="tooltip" data-placement="left" title="Tooltip on left"><a href="#">Yoshiki</a></li>
                 <li><a href="description_index.html">About</a></li>
                 <li><a href="tutorial_index.html">Projects</a></li>
                 <li><a href="installation_index.html">Art</a></li>
@@ -115,14 +135,120 @@
       <div class="jumbotron">
 <!--         <img src="img/emperor_heading.png" alt="Emperor">
         <br><br><br><br> -->
-        <p class="lead" align="justify">Emperor is an interactive next generation tool for the analysis, visualization and understanding of high throughput microbial ecology datasets.
-        </p>
         <p class="lead" align="justify">
           My name is Yoshiki Vázquez-Baeza, I was born and raised in Mexico City, I attended Universidad Iberoamericana (from 2008 to 2012) where I earned my bachelor of science in biomedical engineering. During this time I co-founded and lead the Software Development Group for two years, formed part of the Robotics Group, lead a course of iOS development and worked for the Center of Engineering and Rehabilitation of the University. 
           <br>
-          I moved to the USA (at the beginning of 2012) where I began working as an intern in Rob Knight’s laboratory at the University of Colorado at Boulder; my goal here was to finish my undergraduate thesis (Design and Development of a Spectral Analysis Methodology of the Human Microbiome). In the beginning of september of 2012 I started woking in various software related projects relevant to microbial ecology research; ever since I’ve been contributing to several of them and other open source projects.
+          <!-- Large modal -->
+          <br>
         </p>
+<div class="bs-example">
+    <div id="myCarousel" class="carousel slide" data-ride="carousel">
+      <!-- Carousel indicators -->
+        <ol class="carousel-indicators">
+            <li data-target="#myCarousel" data-slide-to="0" class="active"></li>
+            <li data-target="#myCarousel" data-slide-to="1"></li>
+            <li data-target="#myCarousel" data-slide-to="2"></li>
+        </ol>   
+        <!-- Carousel items -->
+        <div class="carousel-inner">
+            <div class="active item">
+                <img src="img/1.jpg" alt="Slide 1">
+            <div class="carousel-caption">
+                  <h3>A bear</h3>
+                  <p>Taken at Chapultepec Zoo</p>
+                </div>
+            </div>
+            <div class="item">
+                <img src="img/2.jpg" alt="Slide 3">
+                <div class="carousel-caption">
+                  <h3>The Cost of Living</h3>
+                  <p>One of my favorite albums all time</p>
+                </div>
+            </div>
+            <div class="item">
+                <img src="img/3.jpg" alt="Slide 3">
+                <div class="carousel-caption">
+                  <h3>A glass of wine</h3>
+                  <p>A great opportunity I had with my best friend to have a glass of wine</p>
+                </div>
+            </div>
+        </div>
+        <!-- Carousel nav -->
+        <a class="carousel-control left" href="#myCarousel" data-slide="prev">
+            <span class="glyphicon glyphicon-chevron-left"></span>
+        </a>
+        <a class="carousel-control right" href="#myCarousel" data-slide="next">
+            <span class="glyphicon glyphicon-chevron-right"></span>
+        </a>
+    </div>
+
+        <p align="center">
+          <button href="#myModal" class="btn btn-primary" data-toggle="tooltip" data-placement="left" title="A few of my accomplishments" data-target=".bs-modal-lg">View Yoshiki's CV</button>
+
+          <div id="myModal" class="modal fade bs-modal-lg" tabindex="-1" role="dialog" aria-labelledby="myLargeModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+              <div class="modal-content">
+                <embed src="img/Curriculum.pdf">
+              </div>
+            </div>
+          </div>
+          <br>
+        </p>
+        <p class="lead" align="justify">
+        I moved to the USA (at the beginning of 2012) where I began working as an intern in Rob Knight’s laboratory at the University of Colorado at Boulder; my goal here was to finish my undergraduate thesis (Design and Development of a Spectral Analysis Methodology of the Human Microbiome). In the beginning of september of 2012 I started woking in various software related projects relevant to microbial ecology research; ever since I’ve been contributing to several of them and other open source projects.
+        </p>
+<button type="button" class="btn btn-default" data-container="body" data-toggle="popover" data-placement="left" data-content="Vivamus sagittis lacus vel augue laoreet rutrum faucibus.">
+  This popover is not working
+</button>
+
       </div>
+          <div class="panel-group" id="accordion">
+            <div class="panel panel-default">
+              <div class="panel-heading">
+                <h4 class="panel-title">
+                  <a data-toggle="collapse" data-parent="#accordion" href="#collapseOne">
+                    My Opinion on Football
+                  </a>
+                </h4>
+              </div>
+              <div id="collapseOne" class="panel-collapse collapse in">
+                <div class="panel-body">
+                  Once this sport changes it's name to handball, I'll add a relevant opinion here.
+                </div>
+              </div>
+            </div>
+            <div class="panel panel-default">
+              <div class="panel-heading">
+                <h4 class="panel-title">
+                  <a data-toggle="collapse" data-parent="#accordion" href="#collapseTwo">
+                    My Opinion on Soccer
+                  </a>
+                </h4>
+              </div>
+              <div id="collapseTwo" class="panel-collapse collapse">
+                <div class="panel-body">
+                  Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                </div>
+              </div>
+            </div>
+            <div class="panel panel-default">
+              <div class="panel-heading">
+                <h4 class="panel-title">
+                  <a data-toggle="collapse" data-parent="#accordion" href="#collapseThree">
+                    My Opinion on Rugby
+                  </a>
+                </h4>
+              </div>
+              <div id="collapseThree" class="panel-collapse collapse">
+                <div class="panel-body">
+                  Anim pariatur cliche reprehenderit, enim eiusmod high life accusamus terry richardson ad squid. 3 wolf moon officia aute, non cupidatat skateboard dolor brunch. Food truck quinoa nesciunt laborum eiusmod. Brunch 3 wolf moon tempor, sunt aliqua put a bird on it squid single-origin coffee nulla assumenda shoreditch et. Nihil anim keffiyeh helvetica, craft beer labore wes anderson cred nesciunt sapiente ea proident. Ad vegan excepteur butcher vice lomo. Leggings occaecat craft beer farm-to-table, raw denim aesthetic synth nesciunt you probably haven't heard of them accusamus labore sustainable VHS.
+                </div>
+              </div>
+            </div>
+          </div>
+
+
+
 
       <hr>
 
@@ -149,28 +275,11 @@
 
       <div class="footer">
         <a href="https://github.com/qiime/emperor/network/members">
-          <p align="center">&copy; The Emperor Development Team</p>
+          <p id="lol" align="center">&copy; Yoshiki</p>
         </a>
       </div>
 
     </div> <!-- /container -->
-
-    <!-- Le javascript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
-    <script src="bootstrap/js/jquery.js"></script>
-    <script src="bootstrap/js/bootstrap-transition.js"></script>
-    <script src="bootstrap/js/bootstrap-alert.js"></script>
-    <script src="bootstrap/js/bootstrap-modal.js"></script>
-    <script src="bootstrap/js/bootstrap-dropdown.js"></script>
-    <script src="bootstrap/js/bootstrap-scrollspy.js"></script>
-    <script src="bootstrap/js/bootstrap-tab.js"></script>
-    <script src="bootstrap/js/bootstrap-tooltip.js"></script>
-    <script src="bootstrap/js/bootstrap-popover.js"></script>
-    <script src="bootstrap/js/bootstrap-button.js"></script>
-    <script src="bootstrap/js/bootstrap-collapse.js"></script>
-    <script src="bootstrap/js/bootstrap-carousel.js"></script>
-    <script src="bootstrap/js/bootstrap-typeahead.js"></script>
 
   </body>
 </html>
