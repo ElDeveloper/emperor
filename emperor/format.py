@@ -482,6 +482,7 @@ EMPEROR_HEADER_HTML_STRING =\
     <script src="emperor_required_resources/emperor/js/emperor.js"></script>
     <script type="text/javascript" src="emperor_required_resources/js/THREEx.screenshot.js"></script>
     <script type="text/javascript" src="emperor_required_resources/js/FileSaver.min.js"></script>
+    <script type="text/javascript" src="emperor_required_resources/js/leap/src/THREE.LeapMotion.js"></script>
     
     <script type="text/javascript">
     
