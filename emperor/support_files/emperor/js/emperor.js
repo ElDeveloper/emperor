@@ -17,6 +17,8 @@ var g_plotTaxa = {};
 var g_plotVectors = {};
 var g_plotEdges = {};
 var g_parallelPlots = []
+var g_previousPosition = Array([0, 0, 0]);
+var leap;
 
 // sample identifiers of all items that are plotted
 var g_plotIds = [];
@@ -2293,7 +2295,56 @@ $(document).ready(function() {
 		drawAxisLines();
 
 		buildAxisLabels();
-	}
+
+        // Leap Motion integration step
+        leap = new THREE.LeapMotion();
+
+        console.log('leap motion has been instantiated');
+        leap.registerEventHandler(
+            THREE.LeapMotion.Events.HAND_CLOSED,
+            function ( frame ) {
+                console.log('hand closed event');
+                
+            }
+        );
+
+        console.log('what ');
+        leap.handleFrame = function ( frame ) {
+            console.log('this is here');
+            if ( frame.hasHandsVisible() ) {
+                if (frame.isCursorMode()) {
+                    //frame.getDominantHand().fingers[0].tip.position.y -= 50;
+                    var cp = frame.getDominantHand().fingers[0].tip.position;
+                    var cam = g_sceneCamera.position;
+
+                    if (g_previousPosition[0] === 0 &&
+                        g_previousPosition[1] === 0 &&
+                        g_previousPosition[2] === 0){
+                        
+                        //
+                        g_previousPosition[0] = cp.x;
+                        g_previousPosition[1] = cp.y;
+                        g_previousPosition[2] = cp.z;
+
+                        return;
+                   }
+
+
+                    var x = g_previousPosition[0] - cp.x;
+                    var y = g_previousPosition[1] - cp.y;
+                    var z = g_previousPosition[2] - cp.z;
+
+                    g_sceneCamera.position.set(cam.x+x, cam.y+y, cam.z+z);
+                }
+                else {
+                    return;
+                }
+            }
+
+        };
+
+
+    }
 
 	function drawMenuAxesDisplayed() {
 		if (!jQuery.isEmptyObject(g_vectorPositions) || !jQuery.isEmptyObject(g_taxaPositions) ||
