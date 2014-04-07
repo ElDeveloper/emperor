@@ -17,8 +17,6 @@ var g_plotTaxa = {};
 var g_plotVectors = {};
 var g_plotEdges = {};
 var g_parallelPlots = []
-var g_previousPosition = Array([0, 0, 0]);
-var leap;
 
 // sample identifiers of all items that are plotted
 var g_plotIds = [];
@@ -50,6 +48,10 @@ var g_useDiscreteColors = true;
 var g_screenshotBind;
 var g_separator_left;
 var g_separator_history;
+
+// LeapMotion variables
+var g_previousPosition = Array([0, 0, 0]);
+var g_leapMotionController;
 
 // valid ascii codes for filename
 var g_validAsciiCodes = new Array();
@@ -298,6 +300,8 @@ function toggleScaleCoordinates(element) {
 
 /* Toggle between discrete and continuous coloring for samples and labels */
 function toggleContinuousAndDiscreteColors(element){
+    console.log('the value is: ');
+    console.log(element.checked);
 	g_useDiscreteColors = !element.checked;
 
 	// re-coloring the samples and labels now will use the appropriate coloring
@@ -2297,20 +2301,21 @@ $(document).ready(function() {
 		buildAxisLabels();
 
         // Leap Motion integration step
-        leap = new THREE.LeapMotion();
+        g_leapMotionController = new THREE.LeapMotion();
 
         console.log('leap motion has been instantiated');
-        leap.registerEventHandler(
+        g_leapMotionController.registerEventHandler(
             THREE.LeapMotion.Events.HAND_CLOSED,
             function ( frame ) {
-                console.log('hand closed event');
-                
+               handIsClosed();
             }
         );
 
         console.log('what ');
-        leap.handleFrame = function ( frame ) {
+        g_leapMotionController.handleFrame = function ( frame ) {
             console.log('this is here');
+            console.log(frame);
+            iasdfasdf
             if ( frame.hasHandsVisible() ) {
                 if (frame.isCursorMode()) {
                     //frame.getDominantHand().fingers[0].tip.position.y -= 50;
@@ -2333,8 +2338,10 @@ $(document).ready(function() {
                     var x = g_previousPosition[0] - cp.x;
                     var y = g_previousPosition[1] - cp.y;
                     var z = g_previousPosition[2] - cp.z;
-
-                    g_sceneCamera.position.set(cam.x+x, cam.y+y, cam.z+z);
+                    // console.log('x: %f, y: %f, z: %f', cam.x, cam.y, cam.z);
+                    // console.log('x: %f, y: %f, z: %f', cam.x+x, cam.y+y,
+                    //                                   cam.z+z);
+                    // g_sceneCamera.position.set(cam.x+x, cam.y+y, cam.z+z);
                 }
                 else {
                     return;
