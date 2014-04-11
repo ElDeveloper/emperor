@@ -52,6 +52,7 @@ var g_separator_history;
 // LeapMotion variables
 var g_previousPosition = Array([0, 0, 0]);
 var g_leapMotionController;
+var g_leapMotionCameraControls;
 
 // valid ascii codes for filename
 var g_validAsciiCodes = new Array();
@@ -2170,9 +2171,10 @@ $(document).ready(function() {
 	animate();
 
 	function init() {
-		// assign a position to the camera befor associating it with other
-		// objects, else the original position will be lost and not make sense
-		g_sceneCamera = new THREE.PerspectiveCamera(view_angle, winAspect, view_near, view_far);
+
+        // assign a position to the camera befor associating it with other
+        // objects, else the original position will be lost and not make sense
+	    g_sceneCamera = new THREE.PerspectiveCamera(view_angle, winAspect, view_near, view_far);
 		g_sceneCamera.position.set(0, 0, 0);
 
 		$('#main_plot canvas').attr('width',document.getElementById('pcoaPlotWrapper').offsetWidth);
@@ -2251,6 +2253,27 @@ $(document).ready(function() {
 		g_sceneControl.dynamicDampingFactor = 0.3;
 		g_sceneControl.keys = [ 65, 83, 68 ];
 
+        // leap camera controls
+        g_leapMotionCameraControls = new THREE.LeapCameraControls(g_sceneCamera);
+
+        g_leapMotionCameraControls.rotateEnabled  = true;
+        g_leapMotionCameraControls.rotateSpeed    = 3;
+        g_leapMotionCameraControls.rotateHands    = 1;
+        g_leapMotionCameraControls.rotateFingers  = [2, 3];
+        
+        g_leapMotionCameraControls.zoomEnabled    = true;
+        g_leapMotionCameraControls.zoomSpeed      = 6;
+        g_leapMotionCameraControls.zoomHands      = 1;
+        g_leapMotionCameraControls.zoomFingers    = [4, 5];
+        g_leapMotionCameraControls.zoomMin        = 50;
+        g_leapMotionCameraControls.zoomMax        = 2000;
+        
+        g_leapMotionCameraControls.panEnabled     = true;
+        g_leapMotionCameraControls.panSpeed       = 2;
+        g_leapMotionCameraControls.panHands       = 2;
+        g_leapMotionCameraControls.panFingers     = [6, 12];
+        g_leapMotionCameraControls.panRightHanded = true;
+ 
 		// black is the default background color for the scene
 		var rendererBackgroundColor = new THREE.Color();
 		rendererBackgroundColor.setHex("0x000000");
@@ -2299,57 +2322,27 @@ $(document).ready(function() {
 		drawAxisLines();
 
 		buildAxisLabels();
+        // leap loop
+        Leap.loop(function(frame) {
+            // show cursor
+            // showCursor(frame);
 
-        // Leap Motion integration step
-        g_leapMotionController = new THREE.LeapMotion();
+            // set correct camera control
+            // controlsIndex = focusObject(frame);
+            //if (index == -1) {
+            g_leapMotionCameraControls.update(frame);
+            // } else {
+            //    objectsControls[index].update(frame);
+            //};
 
-        console.log('leap motion has been instantiated');
-        g_leapMotionController.registerEventHandler(
-            THREE.LeapMotion.Events.HAND_CLOSED,
-            function ( frame ) {
-               handIsClosed();
-            }
-        );
+            // custom modifications (here: show coordinate system always on target and light movement)
+            //coords1.position = g_leapMotionCameraControls.target;
+            //coords2.position = g_leapMotionCameraControls.target;
+            //coords3.position = g_leapMotionCameraControls.target;
+            //light.position   = camera.position;
 
-        console.log('what ');
-        g_leapMotionController.handleFrame = function ( frame ) {
-            console.log('this is here');
-            console.log(frame);
-            iasdfasdf
-            if ( frame.hasHandsVisible() ) {
-                if (frame.isCursorMode()) {
-                    //frame.getDominantHand().fingers[0].tip.position.y -= 50;
-                    var cp = frame.getDominantHand().fingers[0].tip.position;
-                    var cam = g_sceneCamera.position;
-
-                    if (g_previousPosition[0] === 0 &&
-                        g_previousPosition[1] === 0 &&
-                        g_previousPosition[2] === 0){
-                        
-                        //
-                        g_previousPosition[0] = cp.x;
-                        g_previousPosition[1] = cp.y;
-                        g_previousPosition[2] = cp.z;
-
-                        return;
-                   }
-
-
-                    var x = g_previousPosition[0] - cp.x;
-                    var y = g_previousPosition[1] - cp.y;
-                    var z = g_previousPosition[2] - cp.z;
-                    // console.log('x: %f, y: %f, z: %f', cam.x, cam.y, cam.z);
-                    // console.log('x: %f, y: %f, z: %f', cam.x+x, cam.y+y,
-                    //                                   cam.z+z);
-                    // g_sceneCamera.position.set(cam.x+x, cam.y+y, cam.z+z);
-                }
-                else {
-                    return;
-                }
-            }
-
-        };
-
+            // render();
+        });
 
     }
 
