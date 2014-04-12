@@ -22,14 +22,21 @@ function gestureCallback(frame){
                 case "circle":
                     console.log('circle gesture');
                     break;
+
                 case "swipe":
                     console.log('swipe gesture');
                     break;
+
                 case "screenTap":
+                    console.log('screen tap gesture');
+                    resetCamera();
+                    break
+
                 case "keyTap":
-                    console.log('key tap gesture');
+                    console.log('key tapz gesture');
                     _switchColors();
                     break;
+
                 default:
                     console.log("unkown gesture type");
             }

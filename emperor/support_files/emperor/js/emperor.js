@@ -2321,7 +2321,10 @@ $(document).ready(function() {
 
 		buildAxisLabels();
         // leap loop
-        Leap.loop(function(frame) {
+        // Setup Leap loop with frame callback function
+        var controllerOptions = {enableGestures: true};
+
+        Leap.loop(controllerOptions, function(frame){ 
             gestureCallback(frame);
             showCursor(frame, g_mainRenderer);
             g_leapMotionCameraControls.update(frame);
