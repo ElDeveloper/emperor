@@ -221,3 +221,11 @@ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 OTHER DEALINGS IN THE SOFTWARE.
+
+### threeleapcontrols [4da85979202d9a555959c67013e35d6948070b6b](https://github.com/torstensprenger/threeleapcontrols)
+
+Copyright (c) 2014 [Torsten Sprenger](https://github.com/torstensprenger)
+
+The repository does not provide a license, but direct attribution to the author
+is made here.
+
