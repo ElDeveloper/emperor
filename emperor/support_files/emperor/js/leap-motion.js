@@ -11,21 +11,40 @@
  *
  */
 
-function handIsClosed(){
-    console.log('responding to the callback');
+function gestureCallback(frame){
+    var gesture;
 
-    if ( typeof handIsClosed.counter == 'undefined' ){
-        handIsClosed.counter = 0;
+    // Display Gesture object data
+    if (frame.gestures.length > 0) {
+        for (var i = 0; i < frame.gestures.length; i++) {
+            gesture = frame.gestures[i];
+            switch (gesture.type) {
+                case "circle":
+                    console.log('circle gesture');
+                    break;
+                case "swipe":
+                    console.log('swipe gesture');
+                    break;
+                case "screenTap":
+                case "keyTap":
+                    console.log('key tap gesture');
+                    _switchColors();
+                    break;
+                default:
+                    console.log("unkown gesture type");
+            }
+        }
     }
 
-    if (handIsClosed.counter > 9){
-        var checkbox = $("#discreteorcontinuouscolors");
-        checkbox.prop('checked', !checkbox.prop('checked'));
-        toggleContinuousAndDiscreteColors({'checked':checkbox.prop('checked')});
-        handIsClosed.counter = 0;
-    }
-    handIsClosed.counter += 1;
-}
+    return;
+};
+
+function _switchColors(){
+    var checkbox = $("#discreteorcontinuouscolors");
+    checkbox.prop('checked', !checkbox.prop('checked'));
+    toggleContinuousAndDiscreteColors({'checked':checkbox.prop('checked')});
+    _switchColors.counter = 0;
+};
 
 // taken from threeleapcontrols
 function transform(tipPosition, w, h) {
@@ -48,10 +67,8 @@ function showCursor(frame, renderer) {
     var fl = frame.pointables.length;
 
     if (hl == 1 && fl == 1) {
-        console.log('pointable')
         var f = frame.pointables[0];
         var cont = $(renderer.domElement);
-        console.log(cont)
         var offset = cont.offset();
         var coords = transform(f.tipPosition, cont.width(), cont.height());
         $("#cursor").css('left', offset.left + coords[0] - (($("#cursor").width() - 1)/2 + 1));
@@ -61,5 +78,4 @@ function showCursor(frame, renderer) {
         $("#cursor").css('top', -1000);
     };
 };
-
 

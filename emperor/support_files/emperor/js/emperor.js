@@ -2322,7 +2322,7 @@ $(document).ready(function() {
 		buildAxisLabels();
         // leap loop
         Leap.loop(function(frame) {
-            // show cursor
+            gestureCallback(frame);
             showCursor(frame, g_mainRenderer);
             g_leapMotionCameraControls.update(frame);
         });
