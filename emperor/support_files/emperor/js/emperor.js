@@ -2266,7 +2266,7 @@ $(document).ready(function() {
         g_leapMotionCameraControls.zoomHands      = 1;
         g_leapMotionCameraControls.zoomFingers    = [4, 5];
         
-        g_leapMotionCameraControls.panEnabled     = true;
+        g_leapMotionCameraControls.panEnabled     = false;
         g_leapMotionCameraControls.panSpeed       = 2;
         g_leapMotionCameraControls.panHands       = 2;
         g_leapMotionCameraControls.panFingers     = [6, 12];
