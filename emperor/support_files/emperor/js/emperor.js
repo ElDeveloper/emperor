@@ -2323,23 +2323,8 @@ $(document).ready(function() {
         // leap loop
         Leap.loop(function(frame) {
             // show cursor
-            // showCursor(frame);
-
-            // set correct camera control
-            // controlsIndex = focusObject(frame);
-            //if (index == -1) {
+            showCursor(frame, g_mainRenderer);
             g_leapMotionCameraControls.update(frame);
-            // } else {
-            //    objectsControls[index].update(frame);
-            //};
-
-            // custom modifications (here: show coordinate system always on target and light movement)
-            //coords1.position = g_leapMotionCameraControls.target;
-            //coords2.position = g_leapMotionCameraControls.target;
-            //coords3.position = g_leapMotionCameraControls.target;
-            //light.position   = camera.position;
-
-            // render();
         });
 
     }
