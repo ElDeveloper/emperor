@@ -2260,13 +2260,11 @@ $(document).ready(function() {
         g_leapMotionCameraControls.rotateSpeed    = 3;
         g_leapMotionCameraControls.rotateHands    = 1;
         g_leapMotionCameraControls.rotateFingers  = [2, 3];
-        
+
         g_leapMotionCameraControls.zoomEnabled    = true;
-        g_leapMotionCameraControls.zoomSpeed      = 6;
+        g_leapMotionCameraControls.zoomSpeed      = 85*1000;
         g_leapMotionCameraControls.zoomHands      = 1;
         g_leapMotionCameraControls.zoomFingers    = [4, 5];
-        g_leapMotionCameraControls.zoomMin        = 50;
-        g_leapMotionCameraControls.zoomMax        = 2000;
         
         g_leapMotionCameraControls.panEnabled     = true;
         g_leapMotionCameraControls.panSpeed       = 2;
