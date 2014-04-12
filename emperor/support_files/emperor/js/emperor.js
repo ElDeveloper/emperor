@@ -301,9 +301,7 @@ function toggleScaleCoordinates(element) {
 
 /* Toggle between discrete and continuous coloring for samples and labels */
 function toggleContinuousAndDiscreteColors(element){
-    console.log('the value is: ');
-    console.log(element.checked);
-	g_useDiscreteColors = !element.checked;
+    g_useDiscreteColors = !element.checked;
 
 	// re-coloring the samples and labels now will use the appropriate coloring
 	colorByMenuChanged();
@@ -2325,9 +2323,11 @@ $(document).ready(function() {
         var controllerOptions = {enableGestures: true};
 
         Leap.loop(controllerOptions, function(frame){ 
-            gestureCallback(frame);
+            if (gestureCallback(frame) === false){
+                g_leapMotionCameraControls.update(frame);
+            }
             showCursor(frame, g_mainRenderer);
-            g_leapMotionCameraControls.update(frame);
+
         });
 
     }

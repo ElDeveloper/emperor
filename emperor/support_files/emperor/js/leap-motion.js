@@ -19,31 +19,30 @@ function gestureCallback(frame){
         for (var i = 0; i < frame.gestures.length; i++) {
             gesture = frame.gestures[i];
             switch (gesture.type) {
-                case "circle":
-                    console.log('circle gesture');
-                    break;
-
                 case "swipe":
-                    console.log('swipe gesture');
+                    if (gesture.state === 'stop'){
+                        _switchSelectedColoringCategory();
+                    }
+                    return true;
                     break;
 
                 case "screenTap":
-                    console.log('screen tap gesture');
                     resetCamera();
+                    return true;
                     break
 
                 case "keyTap":
-                    console.log('key tapz gesture');
                     _switchColors();
+                    return true;
                     break;
 
                 default:
-                    console.log("unkown gesture type");
+                    return false;
             }
         }
     }
 
-    return;
+    return false;
 };
 
 function _switchColors(){
@@ -52,6 +51,18 @@ function _switchColors(){
     toggleContinuousAndDiscreteColors({'checked':checkbox.prop('checked')});
     _switchColors.counter = 0;
 };
+
+function _switchSelectedColoringCategory(){
+    var val = $("#colorbycombo").prop("selectedIndex")+1;
+
+    // don't let the value overflow
+    if (val >= document.getElementById('colorbycombo').length){
+        val = 0;
+    }
+
+    $("#colorbycombo").prop("selectedIndex", val);
+    colorByMenuChanged();
+}
 
 // taken from threeleapcontrols
 function transform(tipPosition, w, h) {
