@@ -749,34 +749,36 @@ function colorChangedForEdges(color, index){
 function labelMenuChanged() {
   var colormap = $("#colormap-drop-down").val();
   var labelCategory = $('#labelcombo').val();
-  var labelCatIndex = g_mappingFileHeaders.indexOf(labelCategory);
+  var labelCategoryIndex = g_mappingFileHeaders.indexOf(labelCategory);
+  var vals = [], i = 0;
 
-  if (labelCategory == ""){
-    $('label-list').empty();
+  if (labelCategory === -1){
+    $('#label-list').empty();
     return;
   }
 
   // get all values of this category from the mapping
-  var vals = [];
   _.each(g_plotIds, function(plotIds){
-    vals.push(g_mappingFileData[plotIds][labelCatIndex]);
+    vals.push(g_mappingFileData[plotIds][labelCategoryIndex]);
   });
   vals = naturalSort(_.uniq(vals, false));
   colors = getColorList(vals, colormap);
 
   // build the label table in HTML
-  $('label-list').html(
+  $('#label-list').html(
     '<form name="labels" id="labelForm">' +
-      '<table>'
+      '<table id="label-list-table">' +
+      '</table>' +
+    '</form>'
   );
-  _.each(vals, function(val, i){
+  _.each(vals, function(val){
     // each field is identified by the value it has in the deduplicated
     // list of values and by the number of the column in the mapping file
     // if this is done otherwise, weird characters have to be extemped etc.
     var idString = "r" + i + "c" + g_categoryIndex;
 
     // set the div id, checkbox name so that we can reference this later
-    $('label-list').html(
+    $('#label-list-table').append(
         '<tr>' +
           '<td>' +
             '<input name="' + val + '" type="checkbox" checked="true" onClick="toggleLabels()"></input>' +
@@ -804,11 +806,9 @@ function labelMenuChanged() {
           labelColorChanged($(this).attr('name'), color.toHexString());
         }
     });
+
+    i++;
   });
-  $('label-list').html(
-      '</table>' +
-    '</form>'
-  );
 }
 
 
@@ -816,11 +816,12 @@ function labelMenuChanged() {
 function labelColorChanged(value, color) {
   g_categoryName = $('#labelcombo').val();
   value = value.replace('_','');
+  var categoryIndex = g_mappingFileHeaders.indexOf(g_categoryName);
 
   for(var i = 0; i < g_plotIds.length; i++){
     var sid = g_plotIds[i];
     var divid = sid.replace(/\./g,'');
-    if(g_mappingFileData[sid][g_mappingFileHeaders.indexOf(g_categoryName)] == value){
+    if(g_mappingFileData[sid][categoryIndex] == value){
       $('#'+divid+"_label").css('color', color);
     }
   }
@@ -843,7 +844,6 @@ function toggleLabels() {
     // get the current category name to show the labels
     g_categoryName = $('#labelcombo').val();
 
-    // ==============> Needs work
     // for each of the labels check if they are enabled or not
     for(var i = 0; i < document.labels.elements.length; i++){
       var hidden = !document.labels.elements[i].checked;
