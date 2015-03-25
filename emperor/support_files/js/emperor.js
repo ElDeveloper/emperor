@@ -1304,10 +1304,10 @@ function setJqueryUi() {
   document.getElementById('animation-speed').innerHTML = $("#animation-speed-slider").slider("value")+"x"
 
   //default color for axes labels is white
-  $('#axeslabelscolor').css('backgroundColor',"#FFFFFF");
+  $('#axeslabelscolor').css('backgroundColor',"#000000");
   $("#axeslabelscolor").spectrum({
     localStorageKey: 'key',
-    color: "#FFFFFF",
+    color: "#000000",
     showInitial: true,
     showInput: true,
     showPalette: true,
@@ -1332,10 +1332,10 @@ function setJqueryUi() {
   });
 
   //default color for the axes is white
-  $('#axescolor').css('backgroundColor',"#ffffff");
+  $('#axescolor').css('backgroundColor',"#000000");
   $("#axescolor").spectrum({
     localStorageKey: 'key',
-    color: "#ffffff",
+    color: "#000000",
     showInitial: true,
     showInput: true,
     showPalette: true,
@@ -1362,11 +1362,11 @@ function setJqueryUi() {
   });
 
   // the default color palette for the background is black and white
-  $('#rendererbackgroundcolor').css('backgroundColor',"#000000");
-  $('#parallelPlotWrapper').css('backgroundColor',"#000000");
+  $('#rendererbackgroundcolor').css('backgroundColor',"#FFFFFF");
+  $('#parallelPlotWrapper').css('backgroundColor',"#FFFFFF");
   $("#rendererbackgroundcolor").spectrum({
     localStorageKey: 'key',
-    color: "#000000",
+    color: "#FFFFFF",
     showInitial: true,
     showInput: true,
     showPalette: true,
@@ -1420,7 +1420,7 @@ function drawEllipses() {
 function drawSpheres() {
   for(var sid in g_spherePositions){
     //draw ball
-    var mesh = new THREE.Mesh( g_genericSphere, new THREE.MeshPhongMaterial() );
+    var mesh = new THREE.Mesh( g_genericSphere, new THREE.MeshPhongMaterial(), sid );
     mesh.material.color = new THREE.Color()
     mesh.material.transparent = true;
     mesh.material.depthWrite = false;
@@ -1634,7 +1634,7 @@ function drawEdges(spherepositions){
   This will take the current webGL renderer, convert it to SVG and then generate
   a file to download. Additionally it will create the labels if this option is selected.
 */
-function saveSVG(button){
+function saveSVG(button, sample_id, keep_axes){
   // add a name subfix for the filenames
   if ((g_segments<=8 && g_visiblePoints>=10000) || (g_segments>8 && g_visiblePoints>=5000)) {
     var res = confirm("The number of segments (" + g_segments + ") combined with the number " +
@@ -1644,14 +1644,25 @@ function saveSVG(button){
     if (res==false) return;
   }
 
+  // unless it is explicitly requested to remove the third axis, just keep it
+  if (keep_axes === undefined){
+    keep_axes = true;
+    console.log('keep_axes is undefined at the moment so it will become false');
+  }
+
   $('body').css('cursor','progress');
 
-  var width = document.getElementById('pcoaPlotWrapper').offsetWidth;
-  var height = document.getElementById('pcoaPlotWrapper').offsetHeight;
+  // force to this size and update the projection matrix of the camera
+  var width = 1024;
+  var height = 1024;
+  g_sceneCamera.aspect = width/height;
+  g_sceneCamera.updateProjectionMatrix();
 
   var color = $("#rendererbackgroundcolor").spectrum("get").toHexString(true);
   var rendererBackgroundColor = new THREE.Color();
   rendererBackgroundColor.setHex(color.replace('#','0x'));
+
+  var labelsColor = $("#axeslabelscolor").spectrum("get").toHexString(true);
 
   var svgRenderer = new THREE.SVGRenderer({ antialias: true, preserveDrawingBuffer: true });
   // this is the proper way to set the color of the background but it doesn't work
@@ -1682,10 +1693,70 @@ function saveSVG(button){
                               'xmlns="http://www.w3.org/2000/svg" viewBox=');
   }
 
+
+  // hacking the axis labels in there
+  var match;
+  if (keep_axes) {
+    var pc1_label_x_regex = /<line id="pc1".*?x1="(.*?)"/g;
+    var pc1_label_y_regex = /<line id="pc1".*?y1="(.*?)"/g;
+    match = pc1_label_x_regex.exec(svgfile);
+    var pc1_label_x = match[1];
+    match = pc1_label_y_regex.exec(svgfile);
+    var pc1_label_y = match[1];
+    var pc2_label_x_regex = /<line id="pc2".*?x1="(.*?)"/g;
+    var pc2_label_y_regex = /<line id="pc2".*?y1="(.*?)"/g;
+    match = pc2_label_x_regex.exec(svgfile);
+    var pc2_label_x = match[1];
+    match = pc2_label_y_regex.exec(svgfile);
+    var pc2_label_y = match[1];
+    var pc3_label_x_regex = /<line id="pc3".*?x1="(.*?)"/g;
+    var pc3_label_y_regex = /<line id="pc3".*?y1="(.*?)"/g;
+    match = pc3_label_x_regex.exec(svgfile);
+    var pc3_label_x = match[1];
+    match = pc3_label_y_regex.exec(svgfile);
+    var pc3_label_y =  match[1];
+  }
+  if (keep_axes){
+    var pc1_axis_label = '<text font-size="30" fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
+      'x="' + (parseFloat(pc1_label_x)+4.0).toString() + '" ' +
+      'y="' + pc1_label_y + '">' +
+      g_pc1Label + '</text>'
+      var pc2_axis_label = '<text font-size="30" fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
+      'x="' + pc2_label_x + '" ' +
+      'y="' + (parseFloat(pc2_label_y)-4.0).toString() + '">' +
+      g_pc2Label + '</text>'
+      var pc3_axis_label = '<text font-size="30" fill="'+labelsColor+'" stroke="'+labelsColor+'" ' +
+      'x="' + pc3_label_x + '" ' +
+      'y="' + (parseFloat(pc3_label_y)+15.0).toString() + '">' +
+      g_pc3Label + '</text>'
+  }
+  else{
+    pc1_axis_label = '';
+    pc2_axis_label = '';
+    pc3_axis_label = '';
+  }
+
+
+  svgfile = svgfile.substr(0, index) + background + pc1_axis_label +
+            pc2_axis_label + pc3_axis_label + svgfile.substr(index);
+
+  // must be undefined and not null
+  if (sample_id === undefined){
+    sample_id = '';
+  }
+  else{
+    sample_id = '.'+sample_id;
+  }
+
+  var theBlob = new Blob([svgfile], {type: "text/plain;charset=utf-8"});
+  saveAs(theBlob, $('#saveas_name').val() + sample_id );
+
   saveAs(new Blob([svgfile], {type: "text/plain;charset=utf-8"}),
          $('#saveas_name').val() + ".svg");
 
-  if ($('#saveas_legends').is(':checked')) {
+  // if it's a multishot call then make sure you only print the labels once
+  if (($('#saveas_legends').is(':checked') && button === undefined && sample_id == '') ||
+      ($('#saveas_legends').is(':checked') && button == null && sample_id == '.GLOBAL')) {
     var names = [], colors = [];
 
     // get lists of the data to create the legend
@@ -1696,11 +1767,116 @@ function saveSVG(button){
 
     labels_svg = formatSVGLegend(names, colors);
     saveAs(new Blob([labels_svg], {type: "text/plain;charset=utf-8"}),
-           $('#saveas_name').val() + "_labels.svg");
+           $('#saveas_name').val() + ".labels");
   }
 
   $('body').css('cursor','default');
 }
+
+
+function do_multi_SVG(){
+  if (!confirm('Printing per-sample files is a resource consuming process, '+
+        'make sure you don\'t have anything critical running before clicking'+
+        ' "yes".')) {
+    return
+  }
+
+  // set the new current category and index
+  // g_categoryName = document.getElementById('colorbycombo')[document.getElementById('colorbycombo').selectedIndex].value;
+  var title_header_index = g_mappingFileHeaders.indexOf("TITLE_ACRONYM");
+  if (title_header_index == -1) {
+    if (!confirm("Could not find the header TITLE_ACRONYM in the mapping file"+
+                 ", are you sure you want to use multishot?")) {
+      return
+    }
+  }
+  project_name = "AGP"
+
+  for (var sample_id in g_plotSpheres){
+    g_plotSpheres[sample_id].material.opacity = 1;
+    g_plotSpheres[sample_id].scale.set(0.6, 0.6, 0.6);
+  }
+
+  // Make sure to re-add this axis line after the printing is done
+  g_mainScene.remove(g_xAxisLine);
+  g_mainScene.remove(g_yAxisLine);
+  g_mainScene.remove(g_zAxisLine);
+  saveSVG(null, 'GLOBAL', false);
+
+  // lower opacity for all elements
+  for (var sample_id in g_plotSpheres){
+    g_mainScene.remove(g_plotSpheres[sample_id]);
+    g_elementsGroup.remove(g_plotSpheres[sample_id]);
+  }
+
+  var high_resolution_geometry = new THREE.SphereGeometry(g_radius, 27, 27);
+  var titanic_sphere = new THREE.Mesh(high_resolution_geometry,
+                                      new THREE.MeshLambertMaterial(), 'anonymous');
+  titanic_sphere.material.color = new THREE.Color();
+  titanic_sphere.material.transparent = false;
+  titanic_sphere.material.depthWrite = false;
+  titanic_sphere.material.opacity = 1;
+  titanic_sphere.position.set(0, 0, 0);
+  titanic_sphere.updateMatrix();
+  titanic_sphere.matrixAutoUpdate = true;
+  g_mainScene.add(titanic_sphere);
+  g_elementsGroup.add(titanic_sphere);
+
+  var counter = 0;
+
+  // rock out a single print
+  if ($('#mockup_checkbox').is(':checked')){
+    var sample_id = '000001042.1076459';
+
+    // we have to set the id to this sphere so the SVG replacer can find it
+    titanic_sphere.id = sample_id;
+    titanic_sphere.scale.set(3,3,3);
+    titanic_sphere.material.opacity = 1.0;
+    titanic_sphere.position.set(g_plotSpheres[sample_id].position.x,
+                                g_plotSpheres[sample_id].position.y,
+                                g_plotSpheres[sample_id].position.z);
+    titanic_sphere.material.color.setHex(g_plotSpheres[sample_id].material.color.getHex());
+
+    saveSVG(null, sample_id+"_huge", false);
+
+    counter = counter +1;
+  }
+  else{ // go for all the prints in the AGP
+    for (var sample_id in g_plotSpheres){
+      // make sure that if you are going to print a sample this sample
+      // belongs to the american gut project otherwise skip it
+      if (g_mappingFileData[sample_id][title_header_index] != project_name) {
+        continue;
+      };
+
+      // we have to set the id to this sphere so the SVG replacer can find it
+      titanic_sphere.id = sample_id;
+      titanic_sphere.scale.set(3,3,3);
+      titanic_sphere.material.opacity = 1.0;
+      titanic_sphere.position.set(g_plotSpheres[sample_id].position.x,
+                                  g_plotSpheres[sample_id].position.y,
+                                  g_plotSpheres[sample_id].position.z);
+      titanic_sphere.material.color.setHex(g_plotSpheres[sample_id].material.color.getHex());
+
+      saveSVG(null, sample_id+"_huge", false);
+
+      counter = counter +1;
+    }
+  }
+
+  console.log('A total of %d samples were printed', counter);
+
+  for (var sample_id in g_plotSpheres){
+    g_mainScene.add(g_plotSpheres[sample_id]);
+    g_elementsGroup.add(g_plotSpheres[sample_id]);
+    g_plotSpheres[sample_id].material.opacity = 1.0;
+    g_plotSpheres[sample_id].scale.set(1, 1, 1);
+  }
+  g_mainScene.add(g_xAxisLine);
+  g_mainScene.add(g_yAxisLine);
+  g_mainScene.add(g_zAxisLine);
+}
+
 
 /*Utility function to draw two-vertices lines at a time
 
@@ -1709,7 +1885,7 @@ function saveSVG(button){
   start and end point must be 3 elements array. The color must be a hex-string
   or a hex number.
 */
-function makeLine(coords_a, coords_b, color, width){
+function makeLine(coords_a, coords_b, color, width, id){
   // based on the example described in:
   // https://github.com/mrdoob/three.js/wiki/Drawing-lines
   var material, geometry, line;
@@ -1726,7 +1902,7 @@ function makeLine(coords_a, coords_b, color, width){
   geometry.vertices.push(new THREE.Vector3(coords_b[0], coords_b[1], coords_b[2]));
 
   // the line will contain the two vertices and the described material
-  line = new THREE.Line(geometry, material);
+  line = new THREE.Line(geometry, material, id);
 
   return line;
 }
@@ -1751,11 +1927,11 @@ function drawAxisLines() {
 
   // one line for each of the axes
   g_xAxisLine = makeLine([g_xMinimumValue, g_yMinimumValue, g_zMinimumValue],
-			 [g_xMaximumValue, g_yMinimumValue, g_zMinimumValue], axesColorFromColorPicker, 3);
+			 [g_xMaximumValue, g_yMinimumValue, g_zMinimumValue], axesColorFromColorPicker, 3, "pc1");
   g_yAxisLine = makeLine([g_xMinimumValue, g_yMinimumValue, g_zMinimumValue],
-			 [g_xMinimumValue, g_yMaximumValue, g_zMinimumValue], axesColorFromColorPicker, 3);
+			 [g_xMinimumValue, g_yMaximumValue, g_zMinimumValue], axesColorFromColorPicker, 3, "pc2");
   g_zAxisLine = makeLine([g_xMinimumValue, g_yMinimumValue, g_zMinimumValue],
-			 [g_xMinimumValue, g_yMinimumValue, g_zMaximumValue], axesColorFromColorPicker, 3);
+			 [g_xMinimumValue, g_yMinimumValue, g_zMaximumValue], axesColorFromColorPicker, 3, "pc3");
 
   // axes shouldn't be transparent
   g_xAxisLine.material.transparent = false;
@@ -2252,7 +2428,7 @@ $(document).ready(function() {
 
     // black is the default background color for the scene
     var rendererBackgroundColor = new THREE.Color();
-    rendererBackgroundColor.setHex("0x000000");
+    rendererBackgroundColor.setHex("0xFFFFFF");
 
     // renderer, the default background color is black
     g_mainRenderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
@@ -2388,6 +2564,13 @@ $(document).ready(function() {
     labelCoordinates = toScreenXY(new THREE.Vector3(g_xMinimumValue, g_yMinimumValue, g_zMaximumValue), g_sceneCamera,$('#main-plot'));
     $("#pc3_label").css('left', labelCoordinates['x'])
     $("#pc3_label").css('top', labelCoordinates['y'])
+
+    // Change the css color of the 3d plot labels, set colors here because buildAxesLabels reverts color to default
+    axeslabelscolor = $('#axeslabelscolor').css( "background-color" );
+    $("#pc1_label").css('color', axeslabelscolor);
+    $("#pc2_label").css('color', axeslabelscolor);
+    $("#pc3_label").css('color', axeslabelscolor);
+
 
     // move labels when the plot is moved
     if(document.plotoptions.elements[0].checked){

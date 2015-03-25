@@ -157,6 +157,7 @@ THREE.SVGRenderer = function () {
 			} else if ( element instanceof THREE.RenderableFace ) {
 
 				_v1 = element.v1; _v2 = element.v2; _v3 = element.v3;
+        _id = element.id;
 
 				if ( _v1.positionScreen.z < -1 || _v1.positionScreen.z > 1 ) continue;
 				if ( _v2.positionScreen.z < -1 || _v2.positionScreen.z > 1 ) continue;
@@ -174,7 +175,7 @@ THREE.SVGRenderer = function () {
 
 				if ( _clipBox.isIntersectionBox( _elemBox ) === true ) {
 
-					renderFace3( _v1, _v2, _v3, element, material );
+					renderFace3( _v1, _v2, _v3, element, material, _id );
 
 				}
 
@@ -290,6 +291,7 @@ THREE.SVGRenderer = function () {
 
 		_svgNode = getLineNode( _lineCount ++ );
 
+    _svgNode.setAttribute( 'id', element.id );
 		_svgNode.setAttribute( 'x1', v1.positionScreen.x );
 		_svgNode.setAttribute( 'y1', v1.positionScreen.y );
 		_svgNode.setAttribute( 'x2', v2.positionScreen.x );
@@ -305,12 +307,13 @@ THREE.SVGRenderer = function () {
 
 	}
 
-	function renderFace3( v1, v2, v3, element, material ) {
+	function renderFace3( v1, v2, v3, element, material, id ) {
 
 		_this.info.render.vertices += 3;
 		_this.info.render.faces ++;
 
 		_svgNode = getPathNode( _pathCount ++ );
+    _svgNode.setAttribute('id', id);
 		_svgNode.setAttribute( 'd', 'M ' + v1.positionScreen.x + ' ' + v1.positionScreen.y + ' L ' + v2.positionScreen.x + ' ' + v2.positionScreen.y + ' L ' + v3.positionScreen.x + ',' + v3.positionScreen.y + 'z' );
 
 		if ( material instanceof THREE.MeshBasicMaterial ) {

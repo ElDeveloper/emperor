@@ -353,6 +353,8 @@ document.getElementById("logotable").style.display = 'none';
                             <br><input name="saveas_name" id="saveas_name" value="screenshot" type="text"/>
                             <br><input id="saveas_legends" class="checkbox" type="checkbox" style=""> Create legend
                             <input id="saveas" class="button" type="submit" value="Save as SVG" style="" onClick="saveSVG()"/>
+                            <br><input id="multisaveas" class="button" type="submit" value="Multishot" style="" onClick="do_multi_SVG()"/>
+                            <br>Mockup (only one sample will be saved) <input id="mockup_checkbox" class="checkbox" type="checkbox" style="">
                             <br><br>For a PNG, simply press 'ctrl+p'.
                             <div id="paralleloptions" class="">
                             </div>
