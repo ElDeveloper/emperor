@@ -1751,9 +1751,6 @@ function saveSVG(button, sample_id, keep_axes){
   var theBlob = new Blob([svgfile], {type: "text/plain;charset=utf-8"});
   saveAs(theBlob, $('#saveas_name').val() + sample_id );
 
-  saveAs(new Blob([svgfile], {type: "text/plain;charset=utf-8"}),
-         $('#saveas_name').val() + ".svg");
-
   // if it's a multishot call then make sure you only print the labels once
   if (($('#saveas_legends').is(':checked') && button === undefined && sample_id == '') ||
       ($('#saveas_legends').is(':checked') && button == null && sample_id == '.GLOBAL')) {
