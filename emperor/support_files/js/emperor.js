@@ -1635,15 +1635,6 @@ function drawEdges(spherepositions){
   a file to download. Additionally it will create the labels if this option is selected.
 */
 function saveSVG(button, sample_id, keep_axes){
-  // add a name subfix for the filenames
-  if ((g_segments<=8 && g_visiblePoints>=10000) || (g_segments>8 && g_visiblePoints>=5000)) {
-    var res = confirm("The number of segments (" + g_segments + ") combined with the number " +
-		      "of samples could take a long time and in some computers the browser will crash. " +
-		      "If this happens we suggest to lower the number of segments or use the png " +
-		      "implementation. Do you want to continue?");
-    if (res==false) return;
-  }
-
   // unless it is explicitly requested to remove the third axis, just keep it
   if (keep_axes === undefined){
     keep_axes = true;
