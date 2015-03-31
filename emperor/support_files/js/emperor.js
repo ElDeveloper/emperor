@@ -1637,7 +1637,7 @@ function drawEdges(spherepositions){
 function saveSVG(button, sample_id, keep_axes){
   // unless it is explicitly requested to remove the third axis, just keep it
   if (keep_axes === undefined){
-    keep_axes = true;
+    keep_axes = false;
     console.log('keep_axes is undefined at the moment so it will become false');
   }
 
@@ -1733,7 +1733,7 @@ function saveSVG(button, sample_id, keep_axes){
 
   // must be undefined and not null
   if (sample_id === undefined){
-    sample_id = '';
+    sample_id = '.svg';
   }
   else{
     sample_id = '.'+sample_id;
