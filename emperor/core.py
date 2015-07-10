@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+
 r"""
 Emperor 3D PCoA viewer (:mod:`emperor.core`)
 ============================================
@@ -23,11 +27,24 @@ Classes
 # ----------------------------------------------------------------------------
 from __future__ import division
 
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
+import numpy as np
+import pandas as pd
+
+from os.path import join
+from jinja2 import Template
+from skbio.stats.ordination import OrdinationResults
+
 from emperor.format import (format_mapping_file_to_js, format_pcoa_to_js,
                             format_taxa_to_js, format_vectors_to_js,
                             format_comparison_bars_to_js,
                             format_emperor_html_footer_string)
 from emperor._format_strings import EMPEROR_HEADER_HTML_STRING
+from emperor.util import get_emperor_support_files_dir
+
 
 # we are going to use this remote location to load external resources
 RESOURCES_URL = 'http://emperor.microbio.me/master/make_emperor/emperor_outpu\
@@ -141,3 +158,116 @@ class Emperor(object):
         _emperor = '\n'.join(output)
 
         self._html = _emperor
+
+
+def listify(a):
+    return np.asarray(a, dtype='str').tolist()
+
+
+class PandasEmperor(object):
+    def __init__(self, df, xyz=None, ord_res=None):
+        self.css = []
+        self.js = []
+
+        self.coords_ids = None
+        self.coords = None
+
+        self.pct_var = None
+        self.md_headers = None
+        self.metadata = None
+
+
+        self.update_data(df, xyz, ord_res)
+
+    def update_data(self, df, xyz=None, ord_res=None):
+        if xyz is None and isinstance(ord_res, OrdinationResults):
+            df = df.loc[ord_res.site_ids]
+            self.coords_ids = listify(ord_res.site_ids)
+            self.coords = listify(ord_res.site[:, :10])
+
+            self.pct_var = listify(ord_res.proportion_explained[:10])
+
+            self.md_headers = listify(df.columns)
+            self.metadata = listify(df.values)
+
+        elif all([isinstance(i, str) for i in xyz]) and ord_res is None:
+            for i in xyz:
+                df[i] = df[i].astype('float')
+
+            self.coords_ids = listify(df.index)
+            self.coords = df # get just columnx xyz
+
+            self.pct_var = [1, 1, 1]
+
+            self.md_headers = df.columns
+            self.metadata = listify(df.values)
+
+        else:
+            raise NotImplementedError('Hello')
+
+
+    def _load_css_and_js(self):
+        css_files = ["css/emperor.css", "vendor/css/jquery-ui2.css",
+                     "vendor/css/slick.grid.min.css",
+                     "vendor/css/colorPicker.css", "vendor/css/spectrum.css",
+                     "vendor/css/chosen.min.css"]
+
+        js_files = ["vendor/js/underscore-min.js",
+                    "vendor/js/jquery-1.7.1.min.js",
+                    "vendor/js/jquery-ui-1.8.17.custom.min.js",
+                    "vendor/js/jquery.colorPicker.js",
+                    "vendor/js/chroma.min.js", "vendor/js/three.min.js",
+                    "vendor/js/three.js-plugins/OrbitControls.js",
+                    "vendor/js/jquery.colorPicker.js", "vendor/js/spectrum.js",
+                    "vendor/js/jquery.event.drag-2.2.min.js",
+                    "vendor/js/slick.core.min.js",
+                    "vendor/js/slick.grid.min.js",
+                    "vendor/js/slick.editors.min.js",
+                    "vendor/js/chosen.jquery.min.js", "js/model.js",
+                    "js/view.js", "js/util.js", "js/sceneplotview3d.js",
+                    "js/controller.js", "js/color-editor.js"]
+
+        for res in css_files:
+            with open(join(get_emperor_support_files_dir(), res)) as f:
+                self.css.append(f.read())
+        self.css = '\n'.join(self.css)
+
+        for res in js_files:
+            with open(join(get_emperor_support_files_dir(), res)) as f:
+                self.js.append(f.read())
+        self.js = '\n'.join(self.js)
+
+
+    def __str__(self):
+        # load the resources
+        if not self.css or not self.js:
+            self._load_css_and_js()
+
+        return self._make_emperor()
+
+
+    def _make_emperor(self):
+        fp = join(get_emperor_support_files_dir(), 'templates/template.html')
+        with open(fp) as temp:
+            template = Template(temp.read())
+
+            return template.render(CSS=self.css, JS=self.js,
+                                   coords_ids=self.coords_ids,
+                                   coords=self.coords,
+                                   pct_var=self.pct_var,
+                                   md_headers=self.md_headers,
+                                   metadata=self.metadata)
+
+
+    def _repr_html_(self):
+        # we import here as IPython shouldn't be a dependency of Emperor
+        # however if this method is called it will be from an IPython notebook
+        # otherwise the developer is responsible for calling this method
+        from IPython.display import display, HTML
+
+        # this provides a string representation that's independent of the
+        # filesystem, it will instead retrieve them from the official website
+        output = str(self)
+
+        # thanks to the IPython devs for helping me figure this one out
+        return display(HTML(output), metadata=dict(isolated=True))
