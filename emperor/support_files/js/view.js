@@ -70,6 +70,12 @@ function DecompositionView(decomp) {
    */
   this.markers = [];
   /**
+   * Array of THREE.Mesh objects on screen (represent samples' confidence
+   * intervals).
+   * @type {THREE.Mesh[]}
+   */
+  this.ellipsoids = [];
+  /**
    * Array of line objects shown on screen (used for procustes and vector
    * plots).
    * @type {THREE.Line[]}
@@ -114,8 +120,31 @@ DecompositionView.prototype._initBaseView = function() {
                       plottable.coordinates[z]);
 
     mesh.updateMatrix();
-
     scope.markers.push(mesh);
+
+    // create ellipsoids
+    if(plottable.ci.length !== 0){
+      mesh = new THREE.Mesh(geometry, new THREE.MeshPhongMaterial());
+      mesh.name = plottable.name;
+
+      mesh.material.color = new THREE.Color(0xff0000);
+      mesh.material.transparent = true;
+      mesh.material.depthWrite = true;
+      mesh.material.opacity = 0.5;
+      mesh.matrixAutoUpdate = true;
+
+      mesh.position.set(plottable.coordinates[x],
+                        plottable.coordinates[y],
+                        plottable.coordinates[z]);
+
+      mesh.scale.x = plottable.ci[x]/geometry.radius;
+      mesh.scale.y = plottable.ci[y]/geometry.radius;
+      mesh.scale.z = plottable.ci[z]/geometry.radius;
+
+      mesh.updateMatrix();
+
+      scope.ellipsoids.push(mesh);
+    }
   });
 
   // apply but to the adjacency list NOT IMPLEMENTED

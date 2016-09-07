@@ -292,3 +292,190 @@ class Emperor(object):
                                     axes_names=names)
 
         return plot
+
+
+class JackknifedEmperor(object):
+    """Display principal coordinates analysis plots
+
+    Use this object to interactively display a PCoA plot using the Emperor
+    GUI. IPython provides a rich display system that will let you display a
+    plot inline, without the need of creating a temprorary file or having to
+    write to disk.
+
+    Parameters
+    ----------
+    ordination: skbio.OrdinationResults
+        Object containing the computed values for an ordination method in
+        scikit-bio.
+    mapping_file: pd.DataFrame
+        DataFrame object with the metadata associated to the samples in the
+        ``ordination`` object, should have an index set and it should match the
+        identifiers in the ``ordination`` object.
+    dimensions: int, optional
+        Number of dimensions to keep from the ordination data, defaults to 5.
+    remote: bool or str, optional
+        This parameter can have one of the following three behaviors according
+        to the value: (1) ``str`` - load the resources from a user-specified
+        remote location, (2) ``False`` - load the resources from the
+        nbextensions folder in the Jupyter installation or (3) ``True`` - load
+        the resources from the GitHub repository. This parameter defaults to
+        ``True``. See the Notes section for more information.
+
+    Raises
+    ------
+    ValueError
+        If the remote argument is not of ``bool`` or ``str`` type.
+
+    References
+    ----------
+    .. [1] EMPeror: a tool for visualizing high-throughput microbial community
+       data Vazquez-Baeza Y, Pirrung M, Gonzalez A, Knight R.  Gigascience.
+       2013 Nov 26;2(1):16.
+
+    """
+    # TODO: Raise an issue to refactor since this is duplicated code
+    def __init__(self, ordinations, mapping_file, dimensions=5, remote=True):
+        # TODO: Raise an error if `ordinations` is not an iterable of
+        # OridinationResults objects.
+        # TODO: Make sure the index names are aligned.
+        self.ordinations = ordinations
+
+        self.mf = mapping_file.copy()
+
+        # filter all metadata that we may have for which we don't have any
+        # coordinates this also ensures that the coordinates are in the
+        # same order as the metadata
+        self.mf = self.mf.loc[ordinations[0].samples.index]
+
+        self._html = None
+
+        if ordinations[0].proportion_explained.shape[0] < dimensions:
+            self.dimensions = ordinations[0].proportion_explained.shape[0]
+        else:
+            self.dimensions = dimensions
+
+        if isinstance(remote, bool):
+            if remote:
+                self.base_url = REMOTE_URL
+            else:
+                self.base_url = LOCAL_URL
+        elif isinstance(remote, str):
+            self.base_url = remote
+        else:
+            raise ValueError("Unsupported type for `remote` argument, should "
+                             "be a bool or str")
+
+    def __str__(self):
+        return self.make_emperor()
+
+    def _repr_html_(self):
+        """Used to display a plot in the Jupyter notebook"""
+
+        # we import here as IPython shouldn't be a dependency of Emperor
+        # however if this method is called it will be from an IPython notebook
+        # otherwise the developer is responsible for calling this method
+        from IPython.display import display, HTML
+
+        return display(HTML(str(self)))
+
+    def copy_support_files(self, target=None):
+        """Copies the support files to a target directory
+
+        Parameters
+        ----------
+        target : str
+            The path where resources should be copied to. By default it copies
+            the files to ``self.base_url``.
+        """
+        if target is None:
+            target = self.base_url
+
+        # copy the required resources
+        copy_tree(get_emperor_support_files_dir(), target)
+
+    def make_emperor(self, standalone=False):
+        """Build an emperor plot
+
+        Parameters
+        ----------
+        standalone : bool
+            Whether or not the produced plot should be a standalone HTML file.
+
+        Returns
+        -------
+        str
+            Formatted emperor plot.
+
+
+        Notes
+        -----
+        The ``standalone`` argument is intended for the different use-cases
+        that Emperor can have, either as an embedded widget that lives inside,
+        for example, the Jupyter notebook, or alternatively as an HTML file
+        that refers to resources locally. In this case you will need to copy
+        the support files by calling the ``copy_support_files`` method.
+
+        See Also
+        --------
+        emperor.core.Emperor.copy_support_files
+        """
+
+        # based on: http://stackoverflow.com/a/6196098
+        loader = FileSystemLoader(join(get_emperor_support_files_dir(),
+                                       'templates'))
+
+        if standalone:
+            main_path = basename(STANDALONE_PATH)
+        else:
+            main_path = basename(JUPYTER_PATH)
+        env = Environment(loader=loader)
+
+        main_template = env.get_template(main_path)
+
+        # there's a bug in old versions of Pandas that won't allow us to rename
+        # a DataFrame's index, newer versions i.e 0.18 work just fine but 0.14
+        # would overwrite the name and simply set it as None
+        if self.mf.index.name is None:
+            index_name = 'SampleID'
+        else:
+            index_name = self.mf.index.name
+
+        # format the metadata
+        headers = list(map(str, [index_name] + self.mf.columns.tolist()))
+        metadata = self.mf.apply(lambda x: [str(x.name)] +
+                                 x.astype('str').tolist(),
+                                 axis=1).values.tolist()
+
+        ords = [[ord.samples.index.tolist(), ord.samples.values, ord.eigvals,
+                 ord.proportion_explained] for ord in self.ordinations]
+
+
+
+        # data, low, high, eigvals_average, ids
+        res = summarize_pcoas(ords[0],ords[1:], apply_procrustes=False)
+        data, low, high, eigvals_average, ids = res
+
+        proportion = eigvals_average / eigvals_average.sum()
+
+        # format the coordinates
+        d = self.dimensions
+        pct_var = (proportion * 100).tolist()
+        coords = data[:, :d].tolist()
+
+        # avoid unicode strings
+        coord_ids = list(map(str, list(ids)))
+
+        # yes, we could have used UUID, but we couldn't find an easier way to
+        # test that deterministically and with this approach we can seed the
+        # random number generator and test accordingly
+        plot_id = 'emperor-notebook-' + str(hex(np.random.randint(2**32)))
+
+        plot = main_template.render(coords_ids=coord_ids, coords=coords,
+                                    pct_var=pct_var, md_headers=headers,
+                                    metadata=metadata, base_url=self.base_url,
+                                    plot_id=plot_id,
+                                    logic_template_path=basename(LOGIC_PATH),
+                                    style_template_path=basename(STYLE_PATH),
+                                    axes_names=names)
+
+        return plot

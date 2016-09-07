@@ -120,8 +120,10 @@ function($, _) {
    * @constructs DecompositionModel
    *
    */
+  // TODO: Re-arrange parameters to prioritize metadata.
+  // and move the coordinates to the end.
   function DecompositionModel(name, ids, coords, pct_var, md_headers,
-                              metadata, axesNames) {
+                              metadata, axesNames, ci) {
     var num_coords;
     /**
      * Abbreviated name of the ordination method used to create the data.
@@ -158,6 +160,12 @@ function($, _) {
                       'samples. Coords: ' + coords.length + ' samples: ' +
                       this.ids.length);
     }
+   /**
+     * Confidence intervals.
+     * @type {float[]}
+     */
+    ci = ci === undefined ? [] : ci;
+
 
     /*
       Check that all the coords set have the same number of coordinates
@@ -198,9 +206,14 @@ function($, _) {
 
     this.plottable = new Array(ids.length);
     for (var i = 0; i < ids.length; i++) {
-      this.plottable[i] = new Plottable(ids[i], metadata[i], coords[i], i);
+      // if the confidence intervals are not the same dimension, don't include
+      if (ci.length < ids.length){
+        this.plottable[i] = new Plottable(ids[i], metadata[i], coords[i], i);
+      } else{
+        this.plottable[i] = new Plottable(ids[i], metadata[i],
+                                          coords[i], ci[i]);
+      }
     }
-
     // use slice to make a copy of the array so we can modify it
     /**
      * Minimum and maximum values for each axis in the ordination. More
