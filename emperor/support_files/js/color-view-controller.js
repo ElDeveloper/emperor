@@ -576,6 +576,7 @@ define([
     {id: 'PuRd', name: 'Purple-Red', type: SEQUENTIAL},
     {id: 'PuBuGn', name: 'Purple-Blue-Green', type: SEQUENTIAL},
     {id: 'Greys', name: 'Greys', type: SEQUENTIAL},
+    {id: 'Greysr', name: 'Greys (reversed)', type: SEQUENTIAL},
 
     {id: 'Spectral', name: 'Spectral', type: DIVERGING},
     {id: 'RdBu', name: 'Red-Blue', type: DIVERGING},
