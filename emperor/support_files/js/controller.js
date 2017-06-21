@@ -839,6 +839,24 @@ define([
     decView.needsUpdate = true;
   }
 
+  EmperorController.prototype.hideAndShowByCountry = function() {
+    var colors = {
+      'USA': '#E0162B',
+      'United Kingdom': '#003399',
+      'Australia': '#008751',
+      'Other': 'grey',
+    };
+    this.hideAndShowByValue('country_animation', colors);
+  }
+
+  EmperorController.prototype.hideAndShowByBodySite = function() {
+    var colors = {
+      'Fecal': '#b15928',
+      'Oral': '#1f78b4',
+      'Skin': '#33a02c',
+    };
+    this.hideAndShowByValue('body_product_animation', colors);
+  }
 
   EmperorController.prototype.hideAndShowByValue = function(category, colors) {
     this.changeOpacityAndColor(0.2, 'white');
@@ -866,7 +884,6 @@ define([
     var decView = this.decViews.scatter;
     var decomp = decView.decomp;
 
-
     var category = this._hideAndShowCategory;
     var value = this._hideAndShowColors[this._hideAndShowCategoryIndex][0];
     var color = this._hideAndShowColors[this._hideAndShowCategoryIndex][1];
@@ -891,7 +908,7 @@ define([
     plts = decomp.getPlottablesByMetadataCategoryValue(category, value);
     plts.forEach(function(x) {
       decView.markers[x.idx].visible = true;
-      decView.markers[x.idx].material.opacity += 0.01;
+      decView.markers[x.idx].material.opacity += 0.1;
       opacity = decView.markers[x.idx].material.opacity;
     });
     decView.needsUpdate = true;
@@ -907,6 +924,95 @@ define([
       this._hideAndShowNewValue = false;
       this._hideAndShowColors = undefined;
     }
+  }
+
+  EmperorController.prototype.resetToBodySite = function() {
+    var lcolors = {
+      'category': 'body_product_animation',
+      'continuous': false,
+      'colormap': 'discrete-coloring-qiime',
+      'data': {'Fecal': '#b15928', 'Oral': '#1f78b4', 'Skin': '#33a02c'}
+    };
+    this.controllers.color.fromJSON(lcolors);
+    this.
+  }
+
+  EmperorController.prototype.startFMT = function() {
+    var sphereColors = {
+      '1924.Sadowsky.15r': 'green',  // CD4
+      '1924.Sadowsky.67': 'orange',  // CD3
+      '1924.Sadowsky.14r': 'yellow', // CD1
+      '1924.Sadowsky.40': 'red',     // CD2
+      '1924.Sadowsky.4r': 'purple',  // Donor
+    };
+    var lineColors = {
+      'CD4': 'green',                // CD4
+      'CD3': 'orange',               // CD3
+      'CD1': 'yellow',               // CD1
+      'CD2': 'red',                  // CD2,
+      'Donor': 'purple',             // Donor
+    };
+    this._prepareAnimation('animations_gradient', 'animations_subject',
+                           sphereColors, lineColors);
+  }
+
+  EmperorController.prototype._resetAnimation = function(samples, color) {
+    var decView = this.decViews.scatter;
+    var decomp = decView.decomp;
+    // hide everything
+    var plts = decomp.getPlottableByIDs(samples);
+    plts.forEach(function(plottable){
+      decView.markers[plottable.idx].scale.set(0.5, 0.5, 0.5);
+      decView.markers[plottable.idx].material.color = new THREE.Color(color);
+    });
+  }
+
+  EmperorController.prototype.finishFMT = function() {
+    var samples = ['1924.Sadowsky.15r', '1924.Sadowsky.67',
+                   '1924.Sadowsky.14r', '1924.Sadowsky.40',
+                   '1924.Sadowsky.4r'];
+    this._resetAnimation(samples, '#b15928');
+  }
+
+  EmperorController.prototype.finishITS = function() {
+    var samples = ['101.4'];
+    this._resetAnimation(samples, '#b15928');
+  }
+
+
+  EmperorController.prototype.startITS = function() {
+    var sphereColors = {
+      '101.4': 'orange'
+    };
+    var lineColors = {
+      'Child': 'orange'
+    };
+    this._prepareAnimation('animations_gradient_its',
+                           'animations_trajectory_its',
+                           sphereColors, lineColors);
+  }
+
+  EmperorController.prototype._prepareAnimation = function(gradient, trajectory,
+                                                           sphereColors, lineColors) {
+    var decView = this.decViews.scatter;
+    var decomp = decView.decomp;
+
+    // hide everything
+    var plts = decomp.getPlottableByIDs(_.keys(sphereColors)), color;
+
+    plts.forEach(function(plottable){
+      color = sphereColors[plottable.name];
+      decView.markers[plottable.idx].material.color = new THREE.Color(color);
+      decView.markers[plottable.idx].scale.set(2, 2, 2);
+    });
+
+    decView.needsUpdate = true;
+
+    this.controllers.animations.setColors(lineColors);
+
+    this.controllers.animations.setGradientCategory(gradient);
+    this.controllers.animations.setTrajectoryCategory(trajectory);
+    this.controllers.animations._playButtonClicked();
   }
 
   return EmperorController;
