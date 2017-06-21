@@ -189,6 +189,7 @@ define([
 
     // Custom animations
     this._hideAndShowIsRunning = false;
+    this._dropOpacityIsRunning = false;
   };
 
   /**
@@ -358,6 +359,7 @@ define([
     }
 
     this.hideAndShowDrawFrame();
+    this.dropOpacityFrame();
 
     $.each(this.sceneViews, function(i, sv) {
       if (sv.checkUpdate()) {
@@ -760,7 +762,7 @@ define([
     // we introduce the ICU in a different color
     plts = decomp.getPlottablesByMetadataCategoryValue('run_number', 'ICU');
     plts.forEach(function(x) {
-      decView.markers[x.idx].material.color = new THREE.Color('#FFD700');
+      decView.markers[x.idx].material.color = new THREE.Color('#ff028d');
     });
 
     // split the runs between AG runs and everything else, we rely on the
@@ -785,7 +787,7 @@ define([
       // only show a label for the run numbers, not for ICU, FMT or ITS
       if (!isNaN(parseFloat(this.run))) {
         runName = 'Sequencing Batch ' + this.run;
-        this.runName = Draw.makeLabel([0, -0.7, 0], runName, 'black');
+        this.runName = Draw.makeLabel([0, -0.7, 0], runName, 'black', 3.2);
         this.sceneViews[0].scene.add(this.runName);
       }
 
@@ -801,7 +803,7 @@ define([
       opacity = decView.markers[x.idx].material.opacity;
     });
 
-    if (opacity >= 0.8) {
+    if (opacity >= 0.7) {
       var index = this.runs.indexOf(value);
 
       if (index !== -1) {
@@ -841,9 +843,9 @@ define([
 
   EmperorController.prototype.hideAndShowByCountry = function() {
     var colors = {
-      'USA': '#E0162B',
-      'United Kingdom': '#003399',
       'Australia': '#008751',
+      'United Kingdom': '#003399',
+      'USA': '#E0162B',
       'Other': 'grey',
     };
     this.hideAndShowByValue('country_animation', colors);
@@ -934,7 +936,31 @@ define([
       'data': {'Fecal': '#b15928', 'Oral': '#1f78b4', 'Skin': '#33a02c'}
     };
     this.controllers.color.fromJSON(lcolors);
-    this.
+  }
+
+  EmperorController.prototype.dropOpacity = function() {
+    this._dropOpacityIsRunning = true;
+    console.log('something');
+  }
+
+  EmperorController.prototype.dropOpacityFrame = function() {
+    if (this._dropOpacityIsRunning) {
+      console.log('changing opacity');
+      var decView = this.decViews.scatter;
+      var decomp = decView.decomp, opacity;
+
+      // hide everything
+      decomp.apply(function(plottable) {
+        decView.markers[plottable.idx].material.opacity -= 0.05;
+        decView.markers[plottable.idx].material.transparent = true;
+        opacity = decView.markers[plottable.idx].material.opacity;
+      });
+      decView.needsUpdate = true;
+
+      if (opacity <= 0.2) {
+        this._dropOpacityIsRunning = false;
+      }
+    }
   }
 
   EmperorController.prototype.startFMT = function() {
@@ -964,6 +990,7 @@ define([
     plts.forEach(function(plottable){
       decView.markers[plottable.idx].scale.set(0.5, 0.5, 0.5);
       decView.markers[plottable.idx].material.color = new THREE.Color(color);
+      decView.markers[plottable.idx].material.opacity = 0.2;
     });
   }
 
@@ -972,11 +999,13 @@ define([
                    '1924.Sadowsky.14r', '1924.Sadowsky.40',
                    '1924.Sadowsky.4r'];
     this._resetAnimation(samples, '#b15928');
+    this.controllers.animations._rewindButtonClicked();
   }
 
   EmperorController.prototype.finishITS = function() {
     var samples = ['101.4'];
     this._resetAnimation(samples, '#b15928');
+    this.controllers.animations._rewindButtonClicked();
   }
 
 
@@ -1004,6 +1033,7 @@ define([
       color = sphereColors[plottable.name];
       decView.markers[plottable.idx].material.color = new THREE.Color(color);
       decView.markers[plottable.idx].scale.set(2, 2, 2);
+      decView.markers[plottable.idx].material.opacity = 1;
     });
 
     decView.needsUpdate = true;
