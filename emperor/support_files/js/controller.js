@@ -16,12 +16,13 @@ define([
     'svgrenderer',
     'draw',
     'canvasrenderer',
-    'canvastoblob'
+    'canvastoblob',
+    'util'
 ], function($, _, contextMenu, THREE, DecompositionView, ScenePlotView3D,
             ColorViewController, VisibilityController, ShapeController,
             AxesController, ScaleViewController, AnimationsController,
             FileSaver, viewcontroller, SVGRenderer, Draw, CanvasRenderer,
-            canvasToBlob) {
+            canvasToBlob, util) {
 
   /**
    *
@@ -186,6 +187,8 @@ define([
       scope.resize(scope.$divId.width(), scope.$divId.height());
     });
 
+    // Custom animations
+    this._hideAndShowIsRunning = false;
   };
 
   /**
@@ -349,6 +352,12 @@ define([
     if (this.controllers.animations !== undefined) {
       this.controllers.animations.drawFrame();
     }
+
+    if (this.run !== undefined) {
+      this.runAssembly();
+    }
+
+    this.hideAndShowDrawFrame();
 
     $.each(this.sceneViews, function(i, sv) {
       if (sv.checkUpdate()) {
@@ -733,6 +742,172 @@ define([
 
     return obj;
   };
+
+  EmperorController.prototype.prepRunAssembly = function() {
+    var decView = this.decViews.scatter;
+    var decomp = decView.decomp;
+    var runs = decomp.getUniqueValuesByCategory('run_number');
+
+    // hide everything
+    decomp.apply(function(plottable) {
+      decView.markers[plottable.idx].material.transparent = true;
+      decView.markers[plottable.idx].material.opacity = 0.2;
+    });
+    decomp.apply(function(plottable) {
+      decView.markers[plottable.idx].visible = false;
+    });
+
+    // we introduce the ICU in a different color
+    plts = decomp.getPlottablesByMetadataCategoryValue('run_number', 'ICU');
+    plts.forEach(function(x) {
+      decView.markers[x.idx].material.color = new THREE.Color('#FFD700');
+    });
+
+    // split the runs between AG runs and everything else, we rely on the
+    // last run being ICU in the nonNumeric for this to look right
+    runs = util.splitNumericValues(runs);
+    this.runs = util.naturalSort(runs.numeric);
+    this.runs = this.runs.concat(util.naturalSort(runs.nonNumeric));
+
+    this.run = this.runs[0];
+    decView.needsUpdate = true;
+    this.previous = -1;
+    this.runName = undefined;
+  }
+
+  EmperorController.prototype.runAssembly =  function() {
+    var decView = this.decViews.scatter;
+    var decomp = decView.decomp, value, plts, opacity, runName;
+
+    if (this.previous !== this.run) {
+      this.sceneViews[0].scene.remove(this.runName);
+
+      // only show a label for the run numbers, not for ICU, FMT or ITS
+      if (!isNaN(parseFloat(this.run))) {
+        runName = 'Sequencing Batch ' + this.run;
+        this.runName = Draw.makeLabel([0, -0.7, 0], runName, 'black');
+        this.sceneViews[0].scene.add(this.runName);
+      }
+
+      this.previous = this.run;
+    }
+
+    value = this.run;
+
+    plts = decomp.getPlottablesByMetadataCategoryValue('run_number', value);
+    plts.forEach(function(x) {
+      decView.markers[x.idx].visible = true;
+      decView.markers[x.idx].material.opacity += 0.1;
+      opacity = decView.markers[x.idx].material.opacity;
+    });
+
+    if (opacity >= 0.8) {
+      var index = this.runs.indexOf(value);
+
+      if (index !== -1) {
+        this.run = this.runs[index + 1];
+      }
+      else {
+        this.run = null;
+      }
+    }
+
+    decView.needsUpdate = true;
+
+    // done with the animation
+    if (this.run === null) {
+      this.run = undefined;
+      this.runs = undefined;
+      this.sceneViews[0].scene.remove(this.runName);
+    }
+  }
+
+  EmperorController.prototype.changeOpacityAndColor = function(opacity, color) {
+    opacity = opacity || 0.2;
+    color = color || 'white';
+
+    var decView = this.decViews.scatter;
+    var decomp = decView.decomp;
+
+    // hide everything
+    decomp.apply(function(plottable) {
+      decView.markers[plottable.idx].material.transparent = true;
+      decView.markers[plottable.idx].material.opacity = opacity;
+      decView.markers[plottable.idx].material.color = new THREE.Color(color);
+    });
+
+    decView.needsUpdate = true;
+  }
+
+
+  EmperorController.prototype.hideAndShowByValue = function(category, colors) {
+    this.changeOpacityAndColor(0.2, 'white');
+
+    this._hideAndShowIsRunning = true;
+    this._hideAndShowNewValue = true;
+    this._hideAndShowCategory = category;
+
+    this._hideAndShowCategoryIndex = 0;
+    this._hideAndShowColors = _.pairs(colors);
+  }
+
+  EmperorController.prototype.hideAndShowDrawFrame = function() {
+    if (this._hideAndShowIsRunning) {
+      if (this._hideAndShowNewValue) {
+        this._hideAndShowStartFrame();
+      }
+      else {
+        this._hideAndShowFrame();
+      }
+    }
+  }
+
+  EmperorController.prototype._hideAndShowStartFrame = function() {
+    var decView = this.decViews.scatter;
+    var decomp = decView.decomp;
+
+
+    var category = this._hideAndShowCategory;
+    var value = this._hideAndShowColors[this._hideAndShowCategoryIndex][0];
+    var color = this._hideAndShowColors[this._hideAndShowCategoryIndex][1];
+
+    plts = decomp.getPlottablesByMetadataCategoryValue(category, value);
+    plts.forEach(function(x) {
+      decView.markers[x.idx].visible = false;
+      decView.markers[x.idx].material.color = new THREE.Color(color);
+    });
+
+    decView.needsUpdate = true;
+    this._hideAndShowNewValue = false;
+  }
+
+  EmperorController.prototype._hideAndShowFrame = function() {
+    var decView = this.decViews.scatter, decomp = decView.decomp, opacity;
+
+    var category = this._hideAndShowCategory;
+    var value = this._hideAndShowColors[this._hideAndShowCategoryIndex][0];
+    var color = this._hideAndShowColors[this._hideAndShowCategoryIndex][1];
+
+    plts = decomp.getPlottablesByMetadataCategoryValue(category, value);
+    plts.forEach(function(x) {
+      decView.markers[x.idx].visible = true;
+      decView.markers[x.idx].material.opacity += 0.01;
+      opacity = decView.markers[x.idx].material.opacity;
+    });
+    decView.needsUpdate = true;
+
+    if (opacity >= 0.8) {
+      this._hideAndShowCategoryIndex += 1;
+      this._hideAndShowNewValue = true;
+    }
+
+    if (this._hideAndShowCategoryIndex >= this._hideAndShowColors.length) {
+      this._hideAndShowCategoryIndex = 0;
+      this._hideAndShowIsRunning = false;
+      this._hideAndShowNewValue = false;
+      this._hideAndShowColors = undefined;
+    }
+  }
 
   return EmperorController;
 });
