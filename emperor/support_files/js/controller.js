@@ -843,10 +843,10 @@ define([
 
   EmperorController.prototype.hideAndShowByCountry = function() {
     var colors = {
+      'Other': 'grey',
       'Australia': '#008751',
       'United Kingdom': '#003399',
-      'USA': '#E0162B',
-      'Other': 'grey',
+      'USA': '#E0162B'
     };
     this.hideAndShowByValue('country_animation', colors);
   }
@@ -965,18 +965,18 @@ define([
 
   EmperorController.prototype.startFMT = function() {
     var sphereColors = {
-      '1924.Sadowsky.15r': 'green',  // CD4
-      '1924.Sadowsky.67': 'orange',  // CD3
-      '1924.Sadowsky.14r': 'yellow', // CD1
-      '1924.Sadowsky.40': 'red',     // CD2
-      '1924.Sadowsky.4r': 'purple',  // Donor
+      '1924.Sadowsky.15r': 'green',       // CD4
+      '1924.Sadowsky.67': 'orange',       // CD3
+      '1924.Sadowsky.14r': 'yellow',      // CD1
+      '1924.Sadowsky.40': 'red',          // CD2
+      '1924.Sadowsky.4r': '#b15928',  // Donor
     };
     var lineColors = {
       'CD4': 'green',                // CD4
       'CD3': 'orange',               // CD3
       'CD1': 'yellow',               // CD1
       'CD2': 'red',                  // CD2,
-      'Donor': 'purple',             // Donor
+      'Donor': '#b15928',        // Donor
     };
     this._prepareAnimation('animations_gradient', 'animations_subject',
                            sphereColors, lineColors);
