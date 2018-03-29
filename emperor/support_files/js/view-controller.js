@@ -174,6 +174,22 @@ define([
     this.$select = $('<select>');
     this.$header.append(this.$select);
 
+    /**
+     *
+     * Cache of the slickgrid dataset that's loaded for each decomposition.
+     *
+     * See the setCache and getCache methods, as they are called when the slick
+     * grid dataset is set. It always tracks the previous category that was
+     * selected.
+     *
+     */
+    this._cache = {};
+    this.__cache = {};
+    _.forEach(_.keys(this.decompViewDict), function (key) {
+      scope._cache[key] = {};
+      scope.__cache[key] = {};
+    });
+
     // there's a few attributes we can only set on "ready" so list them up here
     $(function() {
       var placeholder = 'Select a ' + scope.title + ' Category';
@@ -198,6 +214,10 @@ define([
                             include_group_label_in_selected: true,
                             placeholder_text_single: placeholder});
 
+      scope.$select.on('chosen:showing_dropdown', function(evt, params) {
+        scope.captureCache();
+      });
+
       // only subclasses will provide this callback
       if (options.categorySelectionCallback !== undefined) {
 
@@ -209,7 +229,10 @@ define([
         scope.$select.val('');
         scope.$select.prop('disabled', false).trigger('chosen:updated');
 
-        scope.$select.chosen().change(options.categorySelectionCallback);
+        scope.$select.chosen().change(function() {
+          options.categorySelectionCallback.apply(null, arguments);
+          scope.commitCache();
+        });
       }
 
     });
@@ -219,6 +242,75 @@ define([
   EmperorAttributeABC.prototype = Object.create(
     EmperorViewController.prototype);
   EmperorAttributeABC.prototype.constructor = EmperorViewController;
+
+  /**
+   *
+   * Needs documentation, but it's usually called when the dropdown is opened.
+   *
+   */
+  EmperorAttributeABC.prototype.captureCache = function() {
+    var decomposition = this.decompositionName(),
+        category = this.getMetadataField();
+
+    // the category is null when no category has been selected
+    if (category !== null) {
+      this.__cache[decomposition] = {};
+      this.__cache[decomposition][category] = this.getSlickGridDataset();
+    }
+  };
+
+  /**
+   *
+   * Needs documentation, a cache is committed when the value changes so the
+   * staging cache (__cache) is cleaned and the main cache (_cache) is
+   * updated.
+   *
+   */
+  EmperorAttributeABC.prototype.commitCache = function() {
+    var decomposition = this.decompositionName(),
+        category = this.getMetadataField();
+
+    // there's nothing in the cache to commit
+    if (this.getSlickGridDataset().length === 0) {
+      return;
+    }
+
+    this._cache = Object.assign({}, this.__cache);
+    this.discardStagingCache();
+
+    // FIXME: Need a call to update the plottables with the cache value.  As it
+    // stands this implementation won't matter for anything else but for the
+    // gird.
+  };
+
+  /**
+   *
+   * Remove data from the staging __cache.
+   *
+   */
+  EmperorAttributeABC.prototype.discardStagingCache = function() {
+    this.__cache = Object.assign({}, this._cache);
+  };
+
+  /**
+   *
+   * Check if we have cached data for the current category and composition, if
+   * so then get the cached data.
+   *
+   */
+  EmperorAttributeABC.prototype.loadFromCache = function() {
+    var decomposition = this.decompositionName(),
+        category = this.getMetadataField(), cache;
+
+    cache = this._cache[decomposition][category];
+
+    // this means we have something in the cache
+    if (cache !== undefined) {
+      return this._cache[decomposition][category];
+    }
+
+    return null;
+  };
 
   /**
    *
