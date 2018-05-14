@@ -23,7 +23,7 @@ define([
             ColorViewController, VisibilityController, OpacityViewController,
             ShapeController, AxesController, ScaleViewController,
             AnimationsController, FileSaver, viewcontroller, SVGRenderer, Draw,
-            CanvasRenderer, canvasToBlob) {
+            CanvasRenderer, canvasToBlob, util) {
   var EmperorAttributeABC = viewcontroller.EmperorAttributeABC;
 
   /**
