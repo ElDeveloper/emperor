@@ -62,7 +62,6 @@ define([
       'slickGridColumn': {id: 'title', name: '', field: 'value',
         sortable: false, maxWidth: SLICK_WIDTH,
         minWidth: SLICK_WIDTH,
-        autoEdit: true,
         formatter: Slick.Formatters.Checkmark,
         editor: Slick.Editors.Checkbox}};
 
@@ -87,6 +86,8 @@ define([
 
     _.each(this.decompViewDict, function(view) {
       scope.setPlottableAttributes(view, true, view.decomp.plottable);
+      view.showEdgesForPlottables();
+
       view.needsUpdate = true;
     });
   };
@@ -100,12 +101,26 @@ define([
    */
   VisibilityController.prototype.setPlottableAttributes =
       function(scope, visible, group) {
-    var idx;
+    var idx, hasConfidenceIntervals;
 
-    _.each(group, function(element) {
-      idx = element.idx;
+    hasConfidenceIntervals = scope.decomp.hasConfidenceIntervals();
+
+    _.each(group, function(plottable) {
+      idx = plottable.idx;
       scope.markers[idx].visible = visible;
+
+      if (hasConfidenceIntervals) {
+        scope.ellipsoids[idx].visible = visible;
+      }
     });
+
+    if (visible === true) {
+      scope.showEdgesForPlottables(group);
+    }
+    else {
+      scope.hideEdgesForPlottables(group);
+    }
+
     scope.needsUpdate = true;
   };
 

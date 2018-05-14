@@ -1,8 +1,9 @@
 define([
     'three',
     'orbitcontrols',
-    'draw'
-], function(THREE, OrbitControls, draw) {
+    'draw',
+    'underscore'
+], function(THREE, OrbitControls, draw, _) {
   /** @private */
   var makeLine = draw.makeLine;
   /** @private */
@@ -28,8 +29,8 @@ define([
    * @return {ScenePlotView3D} An instance of ScenePlotView3D.
    * @constructs ScenePlotView3D
    */
-   function ScenePlotView3D(renderer, decViews, container, xView, yView,
-                            width, height) {
+  function ScenePlotView3D(renderer, decViews, container, xView, yView,
+                           width, height) {
     var scope = this;
 
     // convert to jquery object for consistency with the rest of the objects
@@ -58,16 +59,24 @@ define([
     this.height = height;
     /**
      * Axes color.
-     * @type {integer}
-     * @default 0xFFFFFF (white)
+     * @type {String}
+     * @default '#FFFFFF' (white)
      */
-    this.axesColor = 0xFFFFFF;
+    this.axesColor = '#FFFFFF';
     /**
      * Background color.
-     * @type {integer}
-     * @default 0x000000 (black)
+     * @type {String}
+     * @default '#000000' (black)
      */
-    this.backgroundColor = 0x000000;
+    this.backgroundColor = '#000000';
+
+    /**
+     * Ranges for all the decompositions in this view (there's a min and a max
+     * property).
+     * @type {Object}
+     */
+    this.dimensionRanges = {'max': [], 'min': []};
+    this._unionRanges();
 
     // used to name the axis lines/labels in the scene
     this._axisPrefix = 'emperor-axis-line-';
@@ -77,17 +86,23 @@ define([
     var max = _.max(decViews.scatter.decomp.dimensionRanges.max);
     var frontFrust = _.min([max * 0.001, 1]);
     var backFrust = _.max([max * 100, 100]);
+
     /**
      * Camera used to display the scene.
      * @type {THREE.PerspectiveCamera}
      */
-    this.camera = new THREE.PerspectiveCamera(35, width / height,
-                                              frontFrust, backFrust);
+    // these are placeholders that are later updated in updateCameraAspectRatio
+    this.camera = new THREE.OrthographicCamera(-50, 50, 50, -50);
     this.camera.position.set(0, 0, max * 5);
+    this.camera.zoom = 0.7;
+
+    this.updateCameraAspectRatio();
 
     //need to initialize the scene
     this.scene = new THREE.Scene();
     this.scene.add(this.camera);
+    this.scene.background = new THREE.Color(this.backgroundColor);
+
     /**
      * Object used to light the scene, by default is set to a light and
      * transparent color (0x99999999).
@@ -135,9 +150,8 @@ define([
      * the ranges that covers all of the decomposition views.
      * @type {Object}
      */
-    this.dimensionRanges = {'max': [], 'min': []};
-    this.drawAxesWithColor(0xFFFFFF);
-    this.drawAxesLabelsWithColor(0xFFFFFF);
+    this.drawAxesWithColor('#FFFFFF');
+    this.drawAxesLabelsWithColor('#FFFFFF');
 
     this._raycaster = new THREE.Raycaster();
     this._mouse = new THREE.Vector2();
@@ -176,30 +190,26 @@ define([
         event.preventDefault();  //cancel system double-click event
     });
 
-    //Add info div as bottom of canvas
-    this.$info = $('<div>');
-    this.$info.css('position', 'absolute')
-      .css('bottom', 0)
-      .css('height', 16)
-      .css('width', '50%')
-      .css('padding-left', 10)
-      .css('padding-right', 10)
-      .css('font-size', 12)
-      .css('z-index', 10000)
-      .css('background-color', 'rgb(238, 238, 238)')
-      .css('border', '1px solid black')
-      .css('font-family', 'Verdana,Arial,sans-serif')
-      .hide();
-    $(this.renderer.domElement).parent().append(this.$info);
-
     // register callback for populating info with clicked sample name
     // set the timeout for fading out the info div
-    var infoDuration = 2500;
+    var infoDuration = 4000;
     var infoTimeout = setTimeout(function() {
         scope.$info.fadeOut();
       }, infoDuration);
 
-    this.on('click', function(n, i) {
+    /**
+     *
+     * The functions showText and copyToClipboard are used in the 'click' and
+     * 'dblclick' events.
+     *
+     * When a sample is clicked we show a legend at the bottom left of the
+     * view. If this legend is clicked, we copy the sample name to the
+     * clipboard. When a sample is double-clicked we directly copy the sample
+     * name to the clipboard and add the legend at the bottom left of the view.
+     *
+     */
+
+    function showText(n, i) {
       clearTimeout(infoTimeout);
       scope.$info.text(n);
       scope.$info.show();
@@ -209,6 +219,48 @@ define([
         scope.$info.fadeOut();
         scope.$info.text('');
       }, infoDuration);
+    }
+
+    function copyToClipboard(text) {
+      var $temp = $('<input>');
+
+      // we need an input element to be able to copy to clipboard, taken from
+      // https://codepen.io/shaikmaqsood/pen/XmydxJ/
+      $('body').append($temp);
+      $temp.val(text).select();
+      document.execCommand('copy');
+      $temp.remove();
+    }
+
+    //Add info div as bottom of canvas
+    this.$info = $('<div>').attr('title', 'Click to copy to clipboard');
+    this.$info.css({'position': 'absolute',
+                    'bottom': 0,
+                    'height': 16,
+                    'width': '50%',
+                    'padding-left': 10,
+                    'padding-right': 10,
+                    'font-size': 12,
+                    'z-index': 10000,
+                    'background-color': 'rgb(238, 238, 238)',
+                    'border': '1px solid black',
+                    'font-family': 'Verdana,Arial,sans-serif'}).hide();
+    this.$info.click(function() {
+      var text = scope.$info.text();
+
+      // handle the case where multiple clicks are received
+      text = text.replace(/\(copied to clipboard\) /g, '');
+      copyToClipboard(text);
+
+      scope.$info.effect('highlight', {}, 500);
+      scope.$info.text('(copied to clipboard) ' + text);
+    });
+    $(this.renderer.domElement).parent().append(this.$info);
+
+    this.on('click', showText);
+    this.on('dblclick', function(n, i) {
+      copyToClipboard(n);
+      showText('(copied to clipboard) ' + n, i);
     });
   };
 
@@ -218,6 +270,7 @@ define([
    *
    */
   ScenePlotView3D.prototype.addDecompositionsToScene = function() {
+    var j;
 
     // Note that the internal logic of the THREE.Scene object prevents the
     // objects from being re-added so we can simply iterate over all the
@@ -226,8 +279,17 @@ define([
     // Add all the meshes to the scene, iterate through all keys in
     // decomposition view dictionary
     for (var decViewName in this.decViews) {
-      for (var j = 0; j < this.decViews[decViewName].markers.length; j++) {
+      for (j = 0; j < this.decViews[decViewName].markers.length; j++) {
         this.scene.add(this.decViews[decViewName].markers[j]);
+      }
+      for (j = 0; j < this.decViews[decViewName].ellipsoids.length; j++) {
+        this.scene.add(this.decViews[decViewName].ellipsoids[j]);
+      }
+
+      // if the left lines exist so will the right lines
+      if (this.decViews[decViewName].lines.left) {
+        this.scene.add(this.decViews[decViewName].lines.left);
+        this.scene.add(this.decViews[decViewName].lines.right);
       }
     }
 
@@ -334,35 +396,68 @@ define([
 
     // shortcut to the index of the visible dimension and the range object
     var x = this.visibleDimensions[0], y = this.visibleDimensions[1],
-        z = this.visibleDimensions[2], range = this.dimensionRanges;
+        z = this.visibleDimensions[2], range = this.dimensionRanges,
+        is2D = z === null;
+
+    // Adds a padding to all dimensions such that samples don't overlap
+    // with the axes lines. Determined based on the default sphere radius
+    var axesPadding = 1.07;
+
+    /*
+     * We special case Z when it is a 2D plot, whenever that's the case we set
+     * the range to be zero so no lines are shown on screen.
+     */
 
     // this is the "origin" of our ordination
-    var start = [range.min[x], range.min[y], range.min[z]];
+    var start = [range.min[x] * axesPadding,
+                 range.min[y] * axesPadding,
+                 is2D ? 0 : range.min[z] * axesPadding];
 
     var ends = [
-      [range.max[x], range.min[y], range.min[z]],
-      [range.min[x], range.max[y], range.min[z]],
-      [range.min[x], range.min[y], range.max[z]]
+      [range.max[x] * axesPadding,
+       range.min[y] * axesPadding,
+       is2D ? 0 : range.min[z] * axesPadding],
+      [range.min[x] * axesPadding,
+       range.max[y] * axesPadding,
+       is2D ? 0 : range.min[z] * axesPadding],
+      [range.min[x] * axesPadding,
+       range.min[y] * axesPadding,
+       is2D ? 0 : range.max[z] * axesPadding]
     ];
 
     action(start, ends[0], x);
     action(start, ends[1], y);
-    action(start, ends[2], z);
+
+    // when transitioning to 2D reset the camera and disable rotation to make
+    // the plot look straight at the camera, as opposed to an awkward angle
+    if (is2D) {
+      this.control.enableRotate = false;
+      this.recenterCamera();
+    }
+    else {
+      action(start, ends[2], z);
+      this.control.enableRotate = true;
+    }
   };
 
   /**
    *
    * Draw the axes lines in the plot
    *
-   * @param {Integer} color An integer in hexadecimal that specifies the color
+   * @param {String} color A CSS-compatible value that specifies the color
    * of each of the axes lines, the length of these lines is determined by the
-   * dimensionRanges property.
+   * dimensionRanges property. If the color value is null the lines will be
+   * removed.
    *
    */
   ScenePlotView3D.prototype.drawAxesWithColor = function(color) {
     var scope = this, axisLine;
 
+    // axes lines are removed if the color is null
     this.removeAxes();
+    if (color === null) {
+      return;
+    }
 
     this._dimensionsIterator(function(start, end, index) {
       axisLine = makeLine(start, end, color, 3, false);
@@ -382,16 +477,19 @@ define([
    * presented in the same scene should have the same percentages explained by
    * each axis.
    *
-   * @param {Integer} color An integer in hexadecimal that specifies the color
-   * of the labels, these labels will be positioned at the end of the axes line.
+   * @param {String} color A CSS-compatible value that specifies the color
+   * of the labels, these labels will be positioned at the end of the axes
+   * line. If the color value is null the labels will be removed.
    *
    */
   ScenePlotView3D.prototype.drawAxesLabelsWithColor = function(color) {
-    var scope = this, axisLabel, decomp, firstKey, text, factor;
+    var scope = this, axisLabel, decomp, firstKey, text;
 
-    factor = (this.dimensionRanges.max[0] - this.dimensionRanges.min[0]) * 0.9;
-
+    // the labels are only removed if the color is null
     this.removeAxesLabels();
+    if (color === null) {
+      return;
+    }
 
     // get the first decomposition object, it doesn't really mater which one
     // we look at though, as all of them should have the same percentage
@@ -400,7 +498,6 @@ define([
     decomp = this.decViews[firstKey].decomp;
 
     this._dimensionsIterator(function(start, end, index) {
-
       // when the labels get too long, it's a bit hard to look at
       if (decomp.axesNames[index].length > 25) {
         text = decomp.axesNames[index].slice(0, 20) + '...';
@@ -415,7 +512,7 @@ define([
         text += ' (' + decomp.percExpl[index].toPrecision(4) + ' %)';
       }
 
-      axisLabel = makeLabel(end, text, color, factor);
+      axisLabel = makeLabel(end, text, color);
       axisLabel.name = scope._axisLabelPrefix + index;
 
       scope.scene.add(axisLabel);
@@ -461,19 +558,6 @@ define([
 
   /**
    *
-   * Sets the aspect ratio of the camera according to the current size of the
-   * scene.
-   *
-   * @param {Float} winAspect ratio of width to height of the scene.
-   *
-   */
-  ScenePlotView3D.prototype.setCameraAspectRatio = function(winAspect) {
-    this.camera.aspect = winAspect;
-    this.camera.updateProjectionMatrix();
-  };
-
-  /**
-   *
    * Resizes and relocates the scene.
    *
    * @param {Float} xView New horizontal location.
@@ -487,8 +571,36 @@ define([
     this.yView = yView;
     this.width = width;
     this.height = height;
-    this.setCameraAspectRatio(width / height);
+
+    this.updateCameraAspectRatio();
+
     this.needsUpdate = true;
+  };
+
+  /**
+   *
+   * Resets the aspect ratio of the camera according to the current size of the
+   * plot space.
+   *
+   */
+  ScenePlotView3D.prototype.updateCameraAspectRatio = function() {
+    // orthographic cameras operate in space units not in pixel units i.e.
+    // the width and height of the view is based on the objects not the window
+    var owidth = this.dimensionRanges.max[0] - this.dimensionRanges.min[0];
+    var oheight = this.dimensionRanges.max[1] - this.dimensionRanges.min[1];
+
+    var aspect = this.width / this.height;
+
+    // ensure that the camera's aspect ratio is equal to the window's
+    owidth = oheight * aspect;
+
+    this.camera.left = -owidth / 2;
+    this.camera.right = owidth / 2;
+    this.camera.top = oheight / 2;
+    this.camera.bottom = -oheight / 2;
+
+    this.camera.aspect = aspect;
+    this.camera.updateProjectionMatrix();
   };
 
   /**
@@ -514,18 +626,8 @@ define([
       return dv.needsUpdate;
     });
 
-    // always add all the present tubes, if they are already present, this will
-    // be a noop, we could be smarter about this ...
-    // this.decViews.forEach(function(view) {
-    //   view.tubes.forEach(function(tube){
-    //     scope.scene.add(tube);
-    //   };
-    // });
-
     _.each(this.decViews, function(view) {
       view.tubes.forEach(function(tube) {
-        // console.log('LOLOLOL');
-        // console.log(tube);
         scope.scene.add(tube);
       });
     });
@@ -556,8 +658,8 @@ define([
 
     // check if we should change the background color
     if (backgroundColor !== this.backgroundColor) {
-      this.renderer.setClearColor(new THREE.Color(backgroundColor));
       this.backgroundColor = _.clone(backgroundColor);
+      this.scene.background = new THREE.Color(this.backgroundColor);
 
       updateColors = true;
     }
@@ -583,12 +685,17 @@ define([
     var camera = this.camera;
 
     // if autorotation is enabled, then update the controls
-    this.control.update();
+    if (this.control.autoRotate) {
+      this.control.update();
+    }
 
-    //point all samples towards the camera
-    _.each(this.decViews.scatter.markers, function(element) {
-      element.quaternion.copy(camera.quaternion);
-    });
+    // only scatter types should be pointed towards the camera, for arrow types
+    // this will result in a very odd visual effect
+    if (this.decViews.scatter.decomp.isScatterType()) {
+      _.each(this.decViews.scatter.markers, function(element) {
+        element.quaternion.copy(camera.quaternion);
+      });
+    }
 
     this.needsUpdate = false;
     $.each(this.decViews, function(key, val) {
@@ -618,8 +725,14 @@ define([
 
     this._raycaster.setFromCamera(this._mouse, this.camera);
 
-    var intersects = this._raycaster.intersectObjects(
-      this.decViews.scatter.markers);
+    // get a flattened array of markers
+    var objects = _.map(this.decViews, function(decomp) {
+      return decomp.markers;
+    });
+    objects = _.reduce(objects, function(memo, value) {
+      return memo.concat(value);
+    }, []);
+    var intersects = this._raycaster.intersectObjects(objects);
 
     // Get first intersected item and call callback with it.
     if (intersects.length > 0) {

@@ -51,7 +51,7 @@ define([
      *  jQuery object holding the SVG colorbar
      */
     this.$colorScale = $("<svg width='90%' height='100%' " +
-                         "'style='display:block;margin:auto;'></svg>");
+                         "style='display:block;margin:auto;'></svg>");
     this.$scaleDiv.append(this.$colorScale);
     this.$scaleDiv.hide();
     /**
@@ -163,7 +163,6 @@ define([
         id: 'title', name: '', field: 'value',
         sortable: false, maxWidth: SLICK_WIDTH,
         minWidth: SLICK_WIDTH,
-        autoEdit: true,
         editor: ColorEditor,
         formatter: ColorFormatter
       }
@@ -251,10 +250,23 @@ define([
   ColorViewController.prototype._resetAttribute = function() {
     EmperorAttributeABC.prototype._resetAttribute.call(this);
 
+    var view = this.getView(), scope = this;
+
     _.each(this.decompViewDict, function(view) {
-      view.setGroupColor(0xff0000, view.decomp.plottable);
-      view.needsUpdate = true;
+      scope.setPlottableAttributes(view, 0xff0000, view.decomp.plottable);
     });
+  };
+
+  /**
+   * Method that returns whether or not the coloring is continuous and the
+   * values have been scaled.
+   *
+   * @return {Boolean} True if the coloring is continuous and the data is
+   * scaled, false otherwise.
+   */
+  ColorViewController.prototype.isColoringContinuous = function() {
+    // the bodygrid can have at most one element (NA values)
+    return this.$scaled.is(':checked') && this.bodyGrid.getData().length <= 1;
   };
 
   /**
@@ -530,12 +542,27 @@ define([
    */
   ColorViewController.prototype.setPlottableAttributes =
   function(scope, color, group) {
-    var idx;
 
-    _.each(group, function(element) {
-      idx = element.idx;
-      scope.markers[idx].material.color = new THREE.Color(color);
-    });
+    var idx, hasConfidenceIntervals;
+
+    hasConfidenceIntervals = scope.decomp.hasConfidenceIntervals();
+
+    if (scope.decomp.isScatterType()) {
+      _.each(group, function(element) {
+        idx = element.idx;
+        scope.markers[idx].material.color = new THREE.Color(color);
+
+        if (hasConfidenceIntervals) {
+          scope.ellipsoids[idx].material.color = new THREE.Color(color);
+        }
+      });
+    }
+    else if (scope.decomp.isArrowType()) {
+      _.each(group, function(element) {
+        idx = element.idx;
+        scope.markers[idx].setColor(new THREE.Color(color));
+      });
+    }
     scope.needsUpdate = true;
   };
 

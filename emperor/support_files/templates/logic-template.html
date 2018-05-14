@@ -56,6 +56,7 @@ requirejs.config({
   'viewcontroller': '{{ base_url }}/js/view-controller',
   'colorviewcontroller': '{{ base_url }}/js/color-view-controller',
   'visibilitycontroller': '{{ base_url }}/js/visibility-controller',
+  'opacityviewcontroller': '{{ base_url }}/js/opacity-view-controller',
   'scaleviewcontroller': '{{ base_url }}/js/scale-view-controller',
   'shapecontroller': '{{ base_url }}/js/shape-controller',
   'axescontroller': '{{ base_url }}/js/axes-controller',
@@ -100,30 +101,26 @@ function($, model, EmperorController) {
 
   var div = $('#{{ plot_id }}');
 
-  var data = {
-    // coordinates information
-    'sample_ids': {{ coords_ids | tojson }},
-    'coordinates': {{ coords | tojson }},
-    'axes_names': {{ axes_names | tojson }},
-    'percents_explained': {{ pct_var | tojson }},
+  var data = {{ data | tojson }};
 
-    // sample information
-    'metadata_headers': {{ md_headers | tojson }},
-    'metadata': {{ metadata | tojson }},
-    'settings': {{ settings | tojson }}
-  }
-
-  var dm, ec;
+  var plot, biplot = null, ec;
 
   function init() {
-    // Initialize the DecompositionModel
-    dm = new DecompositionModel('', data['sample_ids'],
-                                data['coordinates'],
-                                data['percents_explained'],
-                                data['metadata_headers'], data['metadata'],
-                                data['axes_names']);
-    // Initialize the EmperorController
-    ec = new EmperorController(dm, {{ plot_id | tojson }});
+    // Initialize the DecompositionModel for the scatter plot, and optionally
+    // add one for the biplot arrows
+    plot = new DecompositionModel(data.plot.decomposition,
+                                  data.plot.metadata_headers,
+                                  data.plot.metadata,
+                                  data.plot.type);
+
+    if (data.biplot) {
+      biplot = new DecompositionModel(data.biplot.decomposition,
+                                      data.biplot.metadata_headers,
+                                      data.biplot.metadata,
+                                      data.biplot.type);
+    }
+
+    ec = new EmperorController(plot, biplot, {{ plot_id | tojson }});
   }
 
   function animate() {
@@ -141,7 +138,7 @@ function($, model, EmperorController) {
     ec.ready = function () {
       // any other code that needs to be executed when emperor is loaded should
       // go here
-      ec.loadConfig(data['settings']);
+      ec.loadConfig(data.plot.settings);
     }
   });
 

@@ -1,5 +1,8 @@
 /** @module draw */
-define(['underscore', 'three'], function(_, THREE) {
+define(['underscore', 'three', 'jquery'], function(_, THREE, $) {
+  // useful for some calculations
+  var ZERO = new THREE.Vector3();
+
   /**
    *
    * @class EmperorTrajectory
@@ -38,6 +41,98 @@ define(['underscore', 'three'], function(_, THREE) {
     return u;
   };
 
+  /**
+   *
+   * @class EmperorArrowHelper
+   *
+   * Subclass of THREE.ArrowHelper to make raycasting work on the line and cone
+   * children.
+   *
+   * For more information about the arguments, see the [online documentation]
+   * {@link https://threejs.org/docs/#api/helpers/ArrowHelper}.
+   * @return {EmperorArrowHelper}
+   * @extends THREE.ArrowHelper
+   *
+   */
+  function EmperorArrowHelper(dir, origin, length, color, headLength,
+                              headWidth, name) {
+    THREE.ArrowHelper.call(this, dir, origin, length, color, headLength,
+                           headWidth);
+
+    // 16 is roughly the number of characters in "Axis 1 (XX.xx %)"
+    var pad, MIN = 16, paddedName = name;
+
+    this.name = name;
+    this.line.name = this.name;
+    this.cone.name = this.name;
+
+    /*
+     * If the text's lenght is small it will be rendered as a blurry sprite by
+     * padding with spaces we ensure the length allows for a decent resolution.
+     */
+    if (this.name.length < MIN) {
+      pad = Math.round((MIN - this.name.length) / 2);
+
+      paddedName = paddedName.padStart(paddedName.length + pad);
+      paddedName = paddedName.padEnd(paddedName.length + pad);
+    }
+
+    this.label = makeLabel(this.cone.position.toArray(), paddedName, color);
+    this.add(this.label);
+
+    return this;
+  }
+  EmperorArrowHelper.prototype = Object.create(THREE.ArrowHelper.prototype);
+  EmperorArrowHelper.prototype.constructor = THREE.ArrowHelper;
+
+  /**
+   *
+   * Check for ray casting with the line and cone of the arrow
+   *
+   * This class may need to disappear if THREE.ArrowHelper implements the
+   * raycast method, for more information see the [online documentation]
+   * {@link https://threejs.org/docs/#api/helpers/ArrowHelper}.
+   *
+   */
+  EmperorArrowHelper.prototype.raycast = function(raycaster, intersects) {
+      // don't raycast the label since that one is self-explanatory
+      this.line.raycast(raycaster, intersects);
+      this.cone.raycast(raycaster, intersects);
+  };
+
+  /**
+   *
+   * Set the arrow's color
+   *
+   * @param {THREE.Color} color The color to set for the line, cone and label.
+   *
+   */
+  EmperorArrowHelper.prototype.setColor = function(color) {
+    THREE.ArrowHelper.prototype.setColor.call(this, color);
+    this.label.material.color.set(color);
+  };
+
+  /**
+   *
+   * Change the vector where the arrow points to
+   *
+   * @param {THREE.Vector3} target The vector where the arrow will point to.
+   * Note, the label will also change position.
+   *
+   */
+  EmperorArrowHelper.prototype.setPointsTo = function(target) {
+    var length;
+
+    // calculate the length before normalizing to a unit vector
+    target = target.sub(ZERO);
+    length = ZERO.distanceTo(target);
+    target.normalize();
+
+    this.setDirection(target.sub(ZERO));
+    this.setLength(length);
+
+    this.label.position.copy(this.cone.position);
+  };
 
   /**
    *
@@ -109,38 +204,189 @@ define(['underscore', 'three'], function(_, THREE) {
 
   /**
    *
+   * @class EmperorLineSegments
+   *
+   * Subclass of THREE.LineSegments to make vertex modifications easier.
+   *
+   * @return {EmperorLineSegments}
+   * @extends THREE.LineSegments
+   */
+  function EmperorLineSegments(geometry, material) {
+    THREE.LineSegments.call(this, geometry, material);
+
+    return this;
+  }
+  EmperorLineSegments.prototype = Object.create(THREE.LineSegments.prototype);
+  EmperorLineSegments.prototype.constructor = THREE.LineSegments;
+
+  /**
+   *
+   * Set the start and end points for a line in the collection.
+   *
+   * @param {Integer} i The index of the line;
+   * @param {Float[]} start An array of the starting point of the line ([x, y,
+   * z]).
+   * @param {Float[]} start An array of the ending point of the line ([x, y,
+   * z]).
+   */
+  EmperorLineSegments.prototype.setLineAtIndex = function(i, start, end) {
+    var vertices = this.geometry.attributes.position.array;
+
+    vertices[(i * 6)] = start[0];
+    vertices[(i * 6) + 1] = start[1];
+    vertices[(i * 6) + 2] = start[2];
+    vertices[(i * 6) + 3] = end[0];
+    vertices[(i * 6) + 4] = end[1];
+    vertices[(i * 6) + 5] = end[2];
+  };
+
+  /**
+   *
+   * Create a collection of disconnected lines.
+   *
+   * This function is specially useful when creating a lot of lines as it uses
+   * a BufferGeometry for improved performance.
+   *
+   * @param {Array[]} vertices List of vertices used to create the lines. Each
+   * line is connected on as (vertices[i], vertices[i+1),
+   * (vertices[i+2], vertices[i+3]), etc.
+   * @param {integer} color Hexadecimal base that specifies the color of the
+   * line.
+   *
+   * @return {EmperorLineSegments}
+   * @function makeLineCollection
+   *
+   */
+  function makeLineCollection(vertices, color) {
+    // based on https://jsfiddle.net/wilt/bd8trrLx/
+    var material = new THREE.LineBasicMaterial({
+      color: color || 0xff0000
+    });
+
+    var positions = new Float32Array(vertices.length * 3);
+
+    for (var i = 0; i < vertices.length; i++) {
+
+      positions[i * 3] = vertices[i][0];
+      positions[i * 3 + 1] = vertices[i][1];
+      positions[i * 3 + 2] = vertices[i][2];
+
+    }
+
+    var indices = _.range(vertices.length);
+    var geometry = new THREE.BufferGeometry();
+    geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setIndex(new THREE.BufferAttribute(new Uint16Array(indices), 1));
+
+    return new EmperorLineSegments(geometry, material);
+  }
+
+  /**
+   *
+   * Create a generic Arrow object (composite of a cone and line)
+   *
+   * @param {float[]} from The x, y and z coordinates where the arrow
+   * originates from.
+   * @param {float[]} to The x, y and z coordinates where the arrow points to.
+   * @param {integer} color Hexadecimal base that specifies the color of the
+   * line.
+   * @param {String} name The text to be used in the label, and the name of
+   * the line and cone (used for raycasting).
+   *
+   * @return {THREE.Object3D}
+   * @function makeArrow
+   */
+  function makeArrow(from, to, color, name) {
+    var target, origin, direction, length, arrow;
+
+    target = new THREE.Vector3(to[0], to[1], to[2]);
+    origin = new THREE.Vector3(from[0], from[1], from[2]);
+
+    length = origin.distanceTo(target);
+
+    // https://stackoverflow.com/a/20558498/379593
+    direction = target.sub(origin);
+
+    direction.normalize();
+
+    // don't set the head size or width, defaults are good enough
+    arrow = new EmperorArrowHelper(direction, origin, length, color,
+                                   undefined, undefined, name);
+
+    return arrow;
+  }
+
+  function drawTrajectoryLine(trajectory, currentFrame, color, radius) {
+    // based on the example described in:
+    // https://github.com/mrdoob/three.js/wiki/Drawing-lines
+    var material, points = [], lineGeometry, limit = 0, path;
+
+    _trajectory = trajectory.representativeCoordinatesAtIndex(currentFrame);
+
+    material = new THREE.MeshPhongMaterial({color: color});
+    material.matrixAutoUpdate = true;
+    material.transparent = false;
+
+    for (var index = 0; index < _trajectory.length; index++) {
+      points.push(new THREE.Vector3(_trajectory[index].x,
+                  _trajectory[index].y, _trajectory[index].z));
+    }
+
+    path = new THREE.EmperorTrajectory(points);
+    // the line will contain the two vertices and the described material
+    // we increase the number of points to have a smoother transition on
+    // edges i. e. where the trajectory changes the direction it is going
+    lineGeometry = new THREE.TubeGeometry(path, (points.length - 1) * 3, radius,
+                                          10, false);
+
+    return new THREE.Mesh(lineGeometry, material);
+  }
+
+
+  /**
+   *
    * Create a THREE object that displays 2D text, this implementation is based
    * on the answer found
    * [here]{@link http://stackoverflow.com/a/14106703/379593}
    *
    * @param {float[]} position The x, y, and z location of the label.
-   * @param {string} text with the text to be shown on screen.
+   * @param {string} text The text to be shown on screen.
    * @param {integer|string} Color Hexadecimal base that represents the color
    * of the text.
-   * @param {float} [1] factor An optional scaling factor to determine the size
-   * of the labels.
    *
    * @return {THREE.Sprite} Object with the text displaying in it.
    * @function makeLabel
    **/
-  function makeLabel(position, text, color, factor) {
-    var canvas = document.createElement('canvas');
-    var size = 1024;
+  function makeLabel(position, text, color) {
 
-    factor = (factor === undefined ? 1 : factor);
+    // the font size determines the resolution relative to the sprite object
+    var fontSize = 30, canvas, context, measure, scalingFactor = 0.5;
 
-    canvas.width = size;
-    canvas.height = size;
-    var context = canvas.getContext('2d');
+    // 1/16 is the ideal I tested, equivalent to the string 'Axis 1 (16.12 %)'
+    var ideal = 1 / 16, observed = 1 / text.length;
+
+    canvas = document.createElement('canvas');
+    context = canvas.getContext('2d');
+
+    // set the font size so we can measure the width
+    context.font = fontSize + 'px Arial';
+    measure = context.measureText(text);
+
+    // make the dimensions a power of 2 (for use in THREE.js)
+    canvas.width = THREE.Math.nextPowerOfTwo(measure.width);
+    canvas.height = THREE.Math.nextPowerOfTwo(fontSize);
+
+    // after changing the canvas' size we need to reset the font attributes
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.font = fontSize + 'px Arial';
     if (_.isNumber(color)) {
       context.fillStyle = '#' + color.toString(16);
     }
     else {
       context.fillStyle = color;
     }
-    context.textAlign = 'center';
-    context.font = (30 * factor) + 'px Arial';
-    context.fillText(text, size / 2, size / 2);
+    context.fillText(text, canvas.width / 2, canvas.height / 2);
 
     var amap = new THREE.Texture(canvas);
     amap.needsUpdate = true;
@@ -151,8 +397,22 @@ define(['underscore', 'three'], function(_, THREE) {
         color: color
     });
 
+    // We need to rescale the sprite's size to make it look like the ideal case
+    // the 1.3 and 1.4 are values that I tested by hand and "looked good"
+    if (observed > ideal) {
+      // fewer characters than the "ideal"
+      scalingFactor = (ideal / observed) * 1.3;
+    }
+    else if (observed < ideal) {
+      // more characters than the "ideal"
+      scalingFactor = (observed / ideal) * 1.4;
+    }
+
     var sp = new THREE.Sprite(mat);
     sp.position.set(position[0], position[1], position[2]);
+
+    sp.scale.set(scalingFactor, (canvas.height / canvas.width) * scalingFactor,
+                 1);
 
     // add an extra attribute so we can render this properly when we use
     // SVGRenderer
@@ -205,5 +465,7 @@ define(['underscore', 'three'], function(_, THREE) {
   }
 
   return {'formatSVGLegend': formatSVGLegend, 'makeLine': makeLine,
-          'makeLabel': makeLabel, 'drawTrajectoryLine': drawTrajectoryLine};
+          'makeLabel': makeLabel, 'makeArrow': makeArrow,
+          'drawTrajectoryLine': drawTrajectoryLine,
+          'makeLineCollection': makeLineCollection};
 });

@@ -4,6 +4,7 @@ define([
     'util'
 ],
 function($, _, util) {
+  var naturalSort = util.naturalSort;
   /**
    *
    * @class Plottable
@@ -96,14 +97,21 @@ function($, _, util) {
    *
    * Models all the ordination data to be plotted.
    *
-   * @param {string} name A string containing the abbreviated name of the
-   * ordination method.
-   * @param {string[]} ids An array of strings where each string is a sample
-   * identifier
-   * @param {float[]} coords A 2D Array of floats where each row contains the
-   * coordinates of a sample. The rows are in ids order.
-   * @param {float[]} pct_var An Array of floats where each position contains
-   * the percentage explained by that axis
+   * @param {object} data An object with the following attributes (keys):
+   * - `name` A string containing the abbreviated name of the
+   *   ordination method.
+   * - `ids` An array of strings where each string is a sample
+   *   identifier
+   * - `coords` A 2D Array of floats where each row contains the
+   *   coordinates of a sample. The rows are in ids order.
+   * - `names` A 1D Array of strings where each element is the name of one of
+   *   the dimensions in the model.
+   * - `pct_var` An Array of floats where each position contains
+   *   the percentage explained by that axis
+   * - `low` A 1D Array of floats where each row contains the
+   *   coordinates of a sample. The rows are in ids order.
+   * - `high` A 1D Array of floats where each row contains the
+   *   coordinates of a sample. The rows are in ids order.
    * @param {float[]} md_headers An Array of string where each string is a
    * metadata column header
    * @param {string[]} metadata A 2D Array of strings where each row contains
@@ -121,29 +129,42 @@ function($, _, util) {
    * @constructs DecompositionModel
    *
    */
-  function DecompositionModel(name, ids, coords, pct_var, md_headers,
-                              metadata, axesNames) {
+  function DecompositionModel(data, md_headers, metadata, type) {
+    var coords = data.coordinates, ci = data.ci || [];
+
+    /**
+     *
+     * Model's type of the data, can be either 'scatter' or 'arrow'
+     * @type {string}
+     *
+     */
+    this.type = type || 'scatter';
+
     var num_coords;
     /**
      * Abbreviated name of the ordination method used to create the data.
      * @type {string}
      */
-    this.abbreviatedName = name;
+    this.abbreviatedName = data.name || '';
     /**
      * List of sample name identifiers.
      * @type {string[]}
      */
-    this.ids = ids;
+    this.ids = data.sample_ids;
     /**
      * Percentage explained by each of the axes in the ordination.
      * @type {float[]}
      */
-    this.percExpl = pct_var;
+    this.percExpl = data.percents_explained;
     /**
      * Column names for the metadata in the samples.
      * @type {string[]}
      */
     this.md_headers = md_headers;
+
+    if (coords === undefined) {
+      throw new Error('Coordinates are required to initialize this object.');
+    }
 
     /*
       Check that the number of coordinates set provided are the same as the
@@ -167,10 +188,10 @@ function($, _, util) {
     /*
       Check that we have the percentage explained values for all coordinates
     */
-    if (pct_var.length !== num_coords) {
+    if (this.percExpl.length !== num_coords) {
       throw new Error('The number of percentage explained values does not ' +
                       'match the number of coordinates. Perc expl: ' +
-                      pct_var.length + ' Num coord: ' + num_coords);
+                      this.percExpl.length + ' Num coord: ' + num_coords);
     }
 
     /*
@@ -192,9 +213,11 @@ function($, _, util) {
       throw new Error('Not all metadata rows have the same number of values');
     }
 
-    this.plottable = new Array(ids.length);
-    for (var i = 0; i < ids.length; i++) {
-      this.plottable[i] = new Plottable(ids[i], metadata[i], coords[i], i);
+    this.plottable = new Array(this.ids.length);
+    for (i = 0; i < this.ids.length; i++) {
+      // note that ci[i] can be empty
+      this.plottable[i] = new Plottable(this.ids[i], metadata[i], coords[i], i,
+                                        ci[i]);
     }
 
     // use slice to make a copy of the array so we can modify it
@@ -227,17 +250,36 @@ function($, _, util) {
      * Names of the axes in the ordination
      * @type {string[]}
      */
-    this.axesNames = axesNames === undefined ? [] : axesNames;
+    this.axesNames = data.axes_names === undefined ? [] : data.axes_names;
     // We call this after all the other attributes have been initialized so we
     // can use that information safely. Fixes a problem with the ordination
     // file format, see https://github.com/biocore/emperor/issues/562
     this._fixAxesNames();
 
-    // TODO:
-    // this.edges = [];
-    // this.plotEdge = false;
-    // this.serialComparison = false;
+    /**
+     * Array of pairs of Plottable objects.
+     * @type {Array[]}
+     */
+    this.edges = this._processEdgeList(data.edges || []);
   }
+
+  /**
+   *
+   * Whether or not the plottables have confidence intervals
+   *
+   * @return {Boolean} `true` if the plottables have confidence intervals,
+   * `false` otherwise.
+   *
+   */
+  DecompositionModel.prototype.hasConfidenceIntervals = function() {
+    if (this.plottable.length <= 0) {
+      return false;
+    }
+    else if (this.plottable[0].ci.length > 0) {
+      return true;
+    }
+    return false;
+  };
 
   /**
    *
@@ -306,7 +348,8 @@ function($, _, util) {
 
     var md_idx = this._getMetadataIndex(category);
     var res = _.filter(this.plottable, function(pl) {
-      return pl.metadata[md_idx] === value; });
+      return pl.metadata[md_idx] === value;
+    });
 
     if (res.length === 0) {
       throw new Error('The value ' + value +
@@ -322,13 +365,34 @@ function($, _, util) {
    * @param {string} category A string with the metadata header.
    *
    * @return {string[]} An array of the available values for the given metadata
-   * header.
+   * header sorted first alphabetically and then numerically.
    *
    */
   DecompositionModel.prototype.getUniqueValuesByCategory = function(category) {
     var md_idx = this._getMetadataIndex(category);
-    return _.uniq(
-      _.map(this.plottable, function(pl) {return pl.metadata[md_idx];}));
+    var values = _.map(this.plottable, function(pl) {
+      return pl.metadata[md_idx];
+    });
+
+    return naturalSort(_.uniq(values));
+  };
+
+  /**
+   *
+   * Method to determine if this is an arrow decomposition
+   *
+   */
+  DecompositionModel.prototype.isArrowType = function() {
+    return this.type === 'arrow';
+  };
+
+  /**
+   *
+   * Method to determine if this is a scatter decomposition
+   *
+   */
+  DecompositionModel.prototype.isScatterType = function() {
+    return this.type === 'scatter';
   };
 
   /**
@@ -348,6 +412,35 @@ function($, _, util) {
 
   /**
    *
+   * Transform observation names into plottable objects.
+   *
+   * @return {Array[]} An array of plottable pairs.
+   * @private
+   *
+   */
+  DecompositionModel.prototype._processEdgeList = function(edges) {
+    if (edges.length === 0) {
+      return edges;
+    }
+
+    var u, v, scope = this;
+    edges = edges.map(function(edge) {
+      if (edge[0] === edge[1]) {
+        throw new Error('Cannot create edge between two identical nodes (' +
+                        edge[0] + ' and ' + edge[1] + ')');
+      }
+
+      u = scope.getPlottableByID(edge[0]);
+      v = scope.getPlottableByID(edge[1]);
+
+      return [u, v];
+    });
+
+    return edges;
+  };
+
+  /**
+   *
    * Helper function used to find the minimum and maximum values every
    * dimension in the plottable objects. This function is used with
    * underscore.js' reduce function (_.reduce).
@@ -360,7 +453,7 @@ function($, _, util) {
    * of the newly seen plottable object.
    * @private
    *
-   **/
+   */
   DecompositionModel._minMaxReduce = function(accumulator, plottable) {
 
     // iterate over every dimension
@@ -384,7 +477,9 @@ function($, _, util) {
    * scikit-bio. In both cases, if we have an abbreviated name, we will use
    * that string as a prefix for the axes names.
    *
-   **/
+   * @private
+   *
+   */
   DecompositionModel.prototype._fixAxesNames = function() {
     var expected = [], replacement = [], prefix, names, cast, i;
 

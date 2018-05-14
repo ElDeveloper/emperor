@@ -1,7 +1,9 @@
-requirejs(['draw'], function(draw) {
+requirejs(['draw', 'three'], function(draw, THREE) {
   var formatSVGLegend = draw.formatSVGLegend;
   var makeLine = draw.makeLine;
   var makeLabel = draw.makeLabel;
+  var makeArrow = draw.makeArrow;
+  var makeLineCollection = draw.makeLineCollection;
   $(document).ready(function() {
 
     module('Drawing utilities', {
@@ -55,61 +57,108 @@ requirejs(['draw'], function(draw) {
       equal(testLine.material.color.b, 0);
     });
 
+    test('Test makeLineCollection', function(assert) {
+      var vertices = [
+        [1, 0, 0],
+        [0, 1, 0],
+        [0, 0, 1],
+        [0, 1, 0]
+      ];
+      var lines = makeLineCollection(vertices, 0xf0f0f0), expected;
+
+      assert.ok(lines instanceof THREE.LineSegments);
+
+      equal(lines.material.color.getHex(), 0xf0f0f0);
+
+      expected = new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0]);
+      deepEqual(lines.geometry.attributes.position.array, expected);
+    });
+
     /**
      *
-     * Test that makeLabel works correctly without a factor
+     * Test that makeLabel works correctly.
+     *
+     * The validity of the scaling factor was tested visually and by hand.
      *
      */
     test('Test makeLabel works correctly', function(assert) {
-      var label = makeLabel([0, 0, 0], 'foolibusters', 0x00FF00);
+      var label = makeLabel([0, 0, 0], 'ab', 0x00FF00);
 
       equal(label.material.color.r, 0);
       equal(label.material.color.g, 1);
       equal(label.material.color.b, 0);
 
-      equal(label.position.x, 0);
-      equal(label.position.y, 0);
-      equal(label.position.z, 0);
-
-      equal(label.text, 'foolibusters');
+      deepEqual(label.position.toArray(), [0, 0, 0]);
+      equal(label.text, 'ab');
+      deepEqual(label.scale.toArray(), [0.1625, 0.08125, 1]);
     });
 
     /**
      *
-     * Test that makeLabel works correctly without a factor and a color name
+     * Test that makeLabel works correctly for long strings.
+     *
+     * The validity of the scaling factor was tested visually and by hand.
      *
      */
     test('Test makeLabel works correctly with color name', function(assert) {
-      var label = makeLabel([0, 0, 0], 'foolibusters', 'red');
+      var label = makeLabel([0, 0, 0], 'DaysSinceExperimentStart', 'red');
 
       equal(label.material.color.r, 1);
       equal(label.material.color.g, 0);
       equal(label.material.color.b, 0);
 
-      equal(label.position.x, 0);
-      equal(label.position.y, 0);
-      equal(label.position.z, 0);
-
-      equal(label.text, 'foolibusters');
+      deepEqual(label.position.toArray(), [0, 0, 0]);
+      equal(label.text, 'DaysSinceExperimentStart');
+      deepEqual(label.scale.toArray(),
+                [0.9333333333333332, 0.05833333333333333, 1]);
     });
 
     /**
      *
-     * Test that makeLabel works correctly with a factor.
+     * Test that makeLabel works correctly with small and large sizes
+     *
+     * The validity of the scaling factor was tested visually and by hand.
      *
      */
-    test('Test makeLabel works correctly', function(assert) {
-      var label = makeLabel([0, 0, 0], 'foolibusters', 0xFFFF00, 20);
+    test('Test makeLabel scales right', function(assert) {
+      var label = makeLabel([0, 0, 0], 'Axis 1 (35.17 %)', 0xFFFF00);
 
       equal(label.material.color.r, 1);
       equal(label.material.color.g, 1);
       equal(label.material.color.b, 0);
 
-      equal(label.position.x, 0);
-      equal(label.position.y, 0);
-      equal(label.position.z, 0);
+      deepEqual(label.position.toArray(), [0, 0, 0]);
+      equal(label.text, 'Axis 1 (35.17 %)');
 
-      equal(label.text, 'foolibusters');
+      deepEqual(label.scale.toArray(), [0.5, 0.0625, 1]);
+
+    });
+
+    test('Test makeArrow works correctly', function(assert) {
+      var arrow = makeArrow([0, 0, 0], [9, 1, 1], 0x00ff00, 'test');
+
+      equal(arrow.line.material.color.r, 0);
+      equal(arrow.line.material.color.g, 1);
+      equal(arrow.line.material.color.b, 0);
+
+      equal(arrow.cone.material.color.r, 0);
+      equal(arrow.cone.material.color.g, 1);
+      equal(arrow.cone.material.color.b, 0);
+
+      equal(arrow.position.x, 0);
+      equal(arrow.position.y, 0);
+      equal(arrow.position.z, 0);
+
+      deepEqual(arrow.cone.position.toArray(), arrow.label.position.toArray());
+
+      equal(arrow.quaternion.x, 0.07367677183061115);
+      equal(arrow.quaternion.y, 0);
+      equal(arrow.quaternion.z, -0.6630909464755004);
+      equal(arrow.quaternion.w, 0.7449041079191638);
+
+      equal(arrow.line.name, 'test');
+      equal(arrow.cone.name, 'test');
+      equal(arrow.name, 'test');
     });
 
     /**

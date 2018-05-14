@@ -20,6 +20,8 @@ define([
    * identifiers and the values are DecompositionView objects referring to a
    * set of objects presented on screen. This dictionary will usually be shared
    * by all the tabs in the application. This argument is passed by reference.
+   * Note that only the decompositions of type 'scatter' will be controlled,
+   * other types will be ignored.
    *
    * @return {ShapeController} An instance of ShapeController
    * @constructs ShapeController
@@ -64,14 +66,21 @@ define([
       'slickGridColumn': {
         id: 'title', name: '', field: 'value',
         sortable: false, maxWidth: SLICK_WIDTH, minWidth: SLICK_WIDTH,
-        autoEdit: true,
         editor: ShapeEditor,
         formatter: ShapeFormatter
       }
     };
 
+    // shapes are only supported for scatter types
+    var reshapeable = {};
+    for (var key in decompViewDict) {
+      if (decompViewDict[key].decomp.isScatterType()) {
+        reshapeable[key] = decompViewDict[key];
+      }
+    }
+
     EmperorAttributeABC.call(this, container, title, helpmenu,
-                             decompViewDict, options);
+                             reshapeable, options);
     return this;
   }
 
