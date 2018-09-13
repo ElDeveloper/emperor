@@ -34,8 +34,8 @@ CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#### SlickGrid (v2.1.0-dev)
-[SlickGrid](https://github.com/6pac/SlickGrid) - A lightning fast JavaScript grid/spreadsheet (d05dcd5b9369cae4b61df895ef7f51e8248e11c2)
+#### SlickGrid (v2.3.21)
+[SlickGrid](https://github.com/6pac/SlickGrid) - A lightning fast JavaScript grid/spreadsheet
 
 Copyright (c) 2010 Michael Leibman, http://github.com/mleibman/slickgrid
 
