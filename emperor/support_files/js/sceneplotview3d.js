@@ -101,6 +101,9 @@ define([
     var frontFrust = _.min([max * 0.001, 1]);
     var backFrust = _.max([max * 100, 100]);
 
+    // Boxselection Indicator
+    var selectMode = false;
+
     /**
      * Camera used to display the scene.
      * @type {THREE.PerspectiveCamera}
@@ -163,7 +166,7 @@ define([
      * Events allowed for callbacks. DO NOT EDIT.
      * @type {String[]}
      */
-    this.EVENTS = ['click', 'dblclick', 'mousemove', 'mouseup', 'mousedown'];
+    this.EVENTS = ['click', 'dblclick', 'mousemove', 'mouseup', 'mousedown', 'keydown', 'keyup'];
     /** @private */
     this._subscribers = {};
 
@@ -173,6 +176,23 @@ define([
 
     this.selectionBox = new THREE.SelectionBox(this.camera, this.scene );
     this.selectionHelper = new THREE.SelectionHelper( this.selectionBox, renderer, 'selectBox' );
+
+    $container.attr('tabindex', '0');
+    $container.on('keydown', function(event) {
+      console.log("key pressed");
+      if (event.key === 's'){
+        scope.control.enableRotate = false;
+        selectMode = true;
+      }
+    })
+    .on('keyup', function(event){
+      console.log("key released");
+      if (event.key === 's'){
+        scope.control.enableRotate = true;
+        selectMode = false;
+      }
+    })
+
 
     // Add callback call when sample is clicked
     // Double and single click together from: http://stackoverflow.com/a/7845282
@@ -201,8 +221,8 @@ define([
         item.material.emissive.set( 0x000000 );
       }
       scope.selectionBox.startPoint.set(
-        (( event.clientX / offset.left )/element.width) * 2 - 1,
-        - (( event.clientY / offset.top )/element.height) * 2 + 1,
+        (( event.clientX - offset.left )/element.width) * 2 - 1,
+        - (( event.clientY - offset.top )/element.height) * 2 + 1,
         0.5 );
     })
     .on('mousemove', function(event){
@@ -213,27 +233,41 @@ define([
 						scope.selectionBox.collection[ i ].material.emissive.set( 0x000000 );
 					}
 					scope.selectionBox.endPoint.set(
-            (( event.clientX / offset.left )/element.width) * 2 - 1,
-            - (( event.clientY / offset.top )/element.height) * 2 + 1,
+            (( event.clientX - offset.left )/element.width) * 2 - 1,
+            - (( event.clientY - offset.top )/element.height) * 2 + 1,
             0.5 );
-					var allSelected = scope.selectionBox.select();
-          console.log(allSelected);
+
+          var allSelected = scope.selectionBox.select();
 					for ( var i = 0; i < allSelected.length; i ++ ) {
 						allSelected[ i ].material.emissive.set( 0xffffff );
 					}
+
+          // // draw the frustm
+          // for ( var i = 0; i < scope.selectionBox.lineBox.length; i ++ ) {
+					// 	scope.scene.add( scope.selectionBox.lineBox[i] );
+					// }
+
+
 				}
+        scope.needsUpdate = true;
     })
     .on('mouseup', function ( event ) {
       var element = scope.renderer.domElement;
       var offset = $(element).offset();
       scope.selectionBox.endPoint.set(
-        (( event.clientX / offset.left )/element.width) * 2 - 1,
-        - (( event.clientY / offset.top )/element.height) * 2 + 1,
+        (( event.clientX - offset.left )/element.width) * 2 - 1,
+        - (( event.clientY - offset.top )/element.height) * 2 + 1,
         0.5 );
       var allSelected = scope.selectionBox.select();
       for ( var i = 0; i < allSelected.length; i ++ ) {
         allSelected[ i ].material.emissive.set( 0xffffff );
       }
+
+      // draw the frustm
+      for ( var i = 0; i < scope.selectionBox.lineBox.length; i ++ ) {
+        scope.scene.add( scope.selectionBox.lineBox[i] );
+      }
+      scope.needsUpdate = true;
     });
 
     // register callback for populating info with clicked sample name
