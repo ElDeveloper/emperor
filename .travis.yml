@@ -4,6 +4,7 @@ python:
   - 3.6
   # also includes 3.7 (see below)
 env:
+<<<<<<< HEAD
   - NUMPY_VERSION=""  # environment to test with the latest version of NumPy
   - NUMPY_VERSION="<1.13"
 
@@ -42,7 +43,6 @@ install:
   - pip install 'sphinx<1.6' sphinx-bootstrap-theme coveralls
   - pip install -e '.[all]' --verbose
   - npm install -g jsdoc
-
 script:
   - flake8 emperor/*.py tests/*.py scripts/*.py setup.py
   # we just check coverage in the latest version of NumPy
