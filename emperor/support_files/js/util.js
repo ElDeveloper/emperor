@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 /**
  *
  * @author Yoshiki Vazquez Baeza
@@ -67,178 +68,153 @@ function naturalSort(list){
     }
     else{
       numericPart.push(list[index])
+=======
+/** @module utility-functions */
+define(['underscore'], function(_) {
+  /**
+   *
+   * Sorting function that deals with alpha and numeric elements.
+   *
+   * @param {String[]} list A list of strings to sort
+   *
+   * @return {String[]} The sorted list of strings
+   * @function naturalSort
+   */
+  function naturalSort(list) {
+    var numericPart = [], alphaPart = [], result = [];
+
+    // separate the numeric and the alpha elements of the array
+    for (var index = 0; index < list.length; index++) {
+      if (isNaN(parseFloat(list[index]))) {
+        alphaPart.push(list[index]);
+      }
+      else {
+        numericPart.push(list[index]);
+      }
+>>>>>>> new-api
     }
+
+    // ignore casing of the strings, taken from:
+    // http://stackoverflow.com/a/9645447/379593
+    alphaPart.sort(function(a, b) {
+      return a.toLowerCase().localeCompare(b.toLowerCase());
+    });
+
+    // sort in ascending order
+    numericPart.sort(function(a, b) {return parseFloat(a) - parseFloat(b)});
+
+      return result.concat(alphaPart, numericPart);
   }
 
-  // ignore casing of the strings, taken from:
-  // http://stackoverflow.com/a/9645447/379593
-  alphaPart.sort(function (a, b) {
-    return a.toLowerCase().localeCompare(b.toLowerCase());
-  });
 
-  // sort in ascending order
-  numericPart.sort(function(a,b){return parseFloat(a)-parseFloat(b)})
-
-  return result.concat(alphaPart, numericPart);
-}
-
-
-/**
- *
- * Utility function that splits the lineage into taxonomic levels
- * and returns the taxonomic level specified
- *
- * @param {node} XML DOM object, usually as created by the document object.
- *
- * @return string representation of the node object.
- *
-*/
-function truncateLevel(lineage, levelIndex){
-  if (levelIndex===0){
-    return lineage;
-  }
-  var levels = lineage.split(';');
-  var taxaLabel = '';
-  for( var i = 0; (i<levelIndex && i<levels.length); i++){
-    var level = levels[i];
-      if(level[level.length-1]=='_'){
-	taxaLabel += ";"+level;
-      }else{
+  /**
+   *
+   * Utility function that splits the lineage into taxonomic levels
+   * and returns the taxonomic level specified
+   *
+   * @param {String} lineage The taxonomic string, with levels seperated by
+   * semicolons.
+   * @param {Integer} levelIndex The taxonomic level to truncate to.
+   * 1 = Kingdom, 2 = Phylum, etc.
+   *
+   * @return {String} The taxonomic string truncated to desired level.
+   * @function truncateLevel
+   */
+  function truncateLevel(lineage, levelIndex) {
+    if (levelIndex === 0) {
+      return lineage;
+    }
+    var levels = lineage.split(';');
+    var taxaLabel = '';
+    for (var i = 0; (i < levelIndex && i < levels.length); i++) {
+      var level = levels[i];
+      if (level[level.length - 1] == '_') {
+        taxaLabel += ';' + level;
+      }else {
         taxaLabel = level;
       }
-  }
-  return taxaLabel;
-}
-
-/**
- *
- * Utility function to convert an XML DOM documents to a string useful for unit
- * testing
- *
- * @param {node} XML DOM object, usually as created by the document object.
- *
- * @return string representation of the node object.
- *
- * This code is based on this answer http://stackoverflow.com/a/1750890
- *
- */
-function convertXMLToString(node) {
-  if (typeof(XMLSerializer) !== 'undefined') {
-    var serializer = new XMLSerializer();
-    return serializer.serializeToString(node);
-  }
-  else if (node.xml) {
-    return node.xml;
-  }
-}
-
-/**
- *
- * Retrieve a discrete color.
- *
- * @param {index} int, the index of the color to retrieve.
- * @param {map} string, name of the discrete color map to use.
- *
- * @return string representation of the hexadecimal value for a color in the
- * list the QIIME colors or the ColorBrewer discrete colors. If this value
- * value is greater than the number of colors available, the function will just
- * rollover and retrieve the next available color.
- *
- * Defaults to use ColorBrewer colors if there's no map passed in.
- *
- */
-function getDiscreteColor(index, map){
-  if (map === undefined){
-    map = 'discrete-coloring';
-  }
-  if (_.has(k_DiscreteColorMaps, map) === false){
-    throw new Error("Could not find "+map+" as a discrete colormap.")
-  }
-
-  var size = k_DiscreteColorMaps[map].length;
-  if(index >= size){
-    index = index - (Math.floor(index/size)*size)
-  }
-
-  return k_DiscreteColorMaps[map][index]
-}
-
-
-/**
- *
- * Generate a list of colors that corresponds to all the samples in the plot
- *
- * @param {values} list of objects to generate a color for, usually a category
- * in a given metadata column.
- * @param {map} name of the color map to use, see k_CHROMABREWER_MAPS.
- *
- *
- * This function will generate a list of coloring values depending on the
- * coloring scheme that the system is currently using (discrete or continuous).
-*/
-function getColorList(values, map) {
-  var colors = {}, numColors = values.length-1, counter=0, interpolator,
-      discrete = false;
-
-  if (k_CHROMABREWER_MAPS.indexOf(map) === -1) {
-    throw new Error("Could not find "+map+" in the available colormaps");
-  }
-
-  if (map === 'discrete-coloring' || map === 'discrete-coloring-qiime'){
-    discrete = true;
-  }
-
-  // 1 color and continuous coloring should return the first element of the map
-  if (numColors === 0 && discrete === false){
-    colors[values[0]] = chroma.brewer[map][0];
-    return colors;
-  }
-
-  if (discrete === false){
-    map = chroma.brewer[map];
-    interpolator = chroma.interpolate.bezier([map[0], map[3], map[4], map[5],
-                                              map[8]]);
-  }
-
-  for(var index in values){
-    if(discrete){
-      // get the next available color
-      colors[values[index]] = getDiscreteColor(index, map);
     }
-    else{
-      colors[values[index]] =  interpolator(counter/numColors).hex();
-      counter = counter + 1;
+    return taxaLabel;
+  }
+
+  /**
+   *
+   * Utility function to convert an XML DOM documents to a string useful for
+   * unit testing. This code is based on
+   * [this SO answer]{@link http://stackoverflow.com/a/1750890}
+   *
+   * @param {Node} node XML DOM object, usually as created by the document
+   * object.
+   *
+   * @return {String} Representation of the node object.
+   * @function convertXMLToString
+   */
+  function convertXMLToString(node) {
+    if (typeof(XMLSerializer) !== 'undefined') {
+      var serializer = new XMLSerializer();
+      return serializer.serializeToString(node);
+    }
+    else if (node.xml) {
+      return node.xml;
     }
   }
 
-  return colors;
-}
+  /**
+   *
+   * Split list of string values into numeric and non-numeric values
+   *
+   * @param {String[]} values The values to check
+   * @return {Object} Object with two keys, `numeric` and `nonNumeric`.
+   * `numeric` holds an array of all numeric values found. `nonNumeric` holds
+   * an array of the remaining values.
+   */
+   function splitNumericValues(values) {
+    var numeric = [];
+    var nonNumeric = [];
+    _.each(values, function(element) {
+        // http://stackoverflow.com/a/9716488
+        if (!isNaN(parseFloat(element)) && isFinite(element)) {
+          numeric.push(element);
+        }
+        else {
+          nonNumeric.push(element);
+        }
+      });
+    return {numeric: numeric, nonNumeric: nonNumeric};
+   }
 
+  /**
+   *
+   * Escape special characters in a string for use in a regular expression.
+   * Credits go to [this SO answer]{@link http://stackoverflow.com/a/5306111}
+   *
+   * @param {String} regex string to escape for use in a regular expression.
+   *
+   * @return {String} String with escaped characters for use in a regular
+   * expression.
+   * @function escapeRegularExpression
+   */
+  function escapeRegularExpression(regex) {
+    return regex.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+  }
 
-/**
- *
- * Escape special characters in a string for use in a regular expression.
- *
- * @param {regex} string to escape for use in a regular expression.
- *
- * @return string with escaped characters for use in a regular expression.
- *
- * Credits go to this SO answer http://stackoverflow.com/a/5306111
- */
-function escapeRegularExpression(regex){
-    return regex.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
-}
+  /**
+   *
+   * Clean a string in HTML formatted strings that get created with the
+   * namespace tag in some browsers and not in others. Intended to facilitate
+   * testing.
+   *
+   * @param {String} htmlString string to remove namespace from.
+   *
+   * @return {String} String without namespace.
+   * @function cleanHTML
+   */
+  function cleanHTML(htmlString) {
+    return htmlString.replace(' xmlns="http://www.w3.org/1999/xhtml"', '');
+  }
 
-/**
- *
- * Clean a string in HTML formatted strings that get created with the namespace
- * tag in some browsers and not in others. Intended to facilitate testing.
- *
- * @param {htmlString} string to remove namespace from.
- *
- * @return string without namespace.
- *
- */
-function cleanHTML(htmlString){
-    return htmlString.replace(' xmlns="http://www.w3.org/1999/xhtml"', '')
-}
+  return {'truncateLevel': truncateLevel, 'naturalSort': naturalSort,
+          'convertXMLToString': convertXMLToString,
+          'escapeRegularExpression': escapeRegularExpression,
+          'cleanHTML': cleanHTML, 'splitNumericValues': splitNumericValues};
+});

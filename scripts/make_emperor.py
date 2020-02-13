@@ -6,6 +6,7 @@
 #
 # The full license is in the file LICENSE.md, distributed with this software.
 # ----------------------------------------------------------------------------
+<<<<<<< HEAD
 from __future__ import division
 
 from os import makedirs
@@ -799,7 +800,10 @@ def main():
         else:
             fd.writelines(lines)
             fd.close()
+=======
+>>>>>>> new-api
 
 
 if __name__ == "__main__":
-    main()
+    print("This script has been deprecated, please see the online "
+          "documentation for more help.")

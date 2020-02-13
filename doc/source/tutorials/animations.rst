@@ -101,7 +101,11 @@ For convenience, we combined the two datasets using `Qiita
 be logged in to access the studies.
 
 The files needed for this tutorial can be downloaded from this `link
+<<<<<<< HEAD
 <http://emperor.microbio.me/animations-tutorial.zip>`_.
+=======
+<http://emperor.microbio.me/q2-animations/q2-animations-tutorial.zip>`_.
+>>>>>>> new-api
 
 ----------
 Processing
@@ -133,12 +137,22 @@ name it ``animations_gradient``.
 
 .. note::
    When plots are generated with Emperor, only columns where all values are
+<<<<<<< HEAD
    numeric will be accessible as a *trajectory* category.
 
 As for the *trajectory* category, we will ignore all subjects but the ones that
 underwent a FMT, so for all other samples (both for the HMP and FMT), we will
 set the ``host_subject_id`` value to ``NA``. Again, we will create a new column
 to store this modified information, and we will name it
+=======
+   numeric can be animated as a *gradient* category. Trajectories with mixed
+   types or with non-numeric types will be ignored.
+
+As for the *trajectory* category, we will ignore all subjects except the ones
+that underwent a FMT, so for all other samples (both for the HMP and FMT), we
+will set the ``host_subject_id`` value to ``NA``. Again, we will create a new
+column to store this modified information, and we will name it
+>>>>>>> new-api
 ``animations_subject``.
 
 .. note::
@@ -148,6 +162,7 @@ to store this modified information, and we will name it
 After you've done this, the result will be a new metadata mapping file that
 includes two new columns, ``animations_gradient`` and ``animations_subject``
 (for an example see ``mapping-file.animations.txt``). All that's left is to
+<<<<<<< HEAD
 create the plot itself, to do that we will use ``make_emperor.py``::
 
    make_emperor.py -i unweighted-unifrac-pc.txt -m mapping-file.animations.txt -o animations --add_unique_columns
@@ -165,6 +180,24 @@ The resulting plot can be found `here
 <http://emperor.microbio.me/animation/>`_, please note that this plot includes
 a few presets that will be different from the plot that you generated above,
 however both plots are fundamentally the same.
+=======
+create the plot itself, to do that we will use ``qiime emperor plot``::
+
+   qiime emperor plot --i-pcoa unweighted-unifrac-pcoa.qza --m-metadata-file mapping-file.animations.txt --o-visualization unweighted-unifrac-pcoa.animations.qzv
+
+After you do this, you can open the plot, select ``body_habitat`` as a color
+category (under the Colors tab). Now, go to the animations tab on the right.
+Next, in the *Gradient Category* menu select *animations_gradient*, and in the
+*Trajectory Category* menu select *animations_subject*. Now you can click the
+play button and visualize the changes in the microbiome of the four patients.
+As you do this, you can continue to interact with the plot, and change other
+visual attributes.
+
+The resulting plot can be found `here
+<https://view.qiime2.org/visualization/?type=html&src=https%3A%2F%2Fdl.dropbox.com%2Fs%2Fh8qw76loauepnkk%2Funweighted-unifrac-pcoa.animations.qzv%3Fdl%3D1>`_, please note that this plot
+includes a few presets that will be different from the plot that you generated
+above, however both plots are fundamentally the same.
+>>>>>>> new-api
 
 Filtering out data
 ==================

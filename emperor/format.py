@@ -12,9 +12,9 @@ from __future__ import division
 from sys import argv
 from os.path import abspath
 from datetime import datetime
-from StringIO import StringIO
 from socket import gethostname
 
+<<<<<<< HEAD
 import numpy as np
 
 from emperor.util import (keep_columns_from_mapping_file,
@@ -526,6 +526,9 @@ def format_emperor_html_footer_string(has_biplots=False, has_ellipses=False,
                    _EDGES_VISIBILITY_SELECTOR if has_edges else ''}
 
     return _EMPEROR_FOOTER_HTML_STRING.format(**format_dict)
+=======
+from emperor import __version__ as emperor_library_version
+>>>>>>> new-api
 
 
 def format_emperor_autograph(metadata_fp, coords_fp, language='HTML'):
@@ -555,8 +558,8 @@ def format_emperor_autograph(metadata_fp, coords_fp, language='HTML'):
     _languages = {'HTML': ('<!--', '-->'), 'Python': ('"""', '"""'),
                   'C': ('/*', '*/'), 'Bash': ('<<COMMENT', 'COMMENT')}
 
-    assert language in _languages.keys(), ('%s is not a supported language' %
-                                           language)
+    assert language in list(_languages.keys()), ('%s is not a supported '
+                                                 'language' % language)
 
     autograph = []
     autograph.append(_languages[language][0])
@@ -567,7 +570,7 @@ def format_emperor_autograph(metadata_fp, coords_fp, language='HTML'):
                                              ' %H:%M:%S'))
 
     # add library version and SHA-1 if available
-    autograph.append('Emperor Version: %s' % get_emperor_library_version())
+    autograph.append('Emperor Version: %s' % emperor_library_version)
     autograph.append('HostName: %s' % gethostname())
 
     # full path to input files

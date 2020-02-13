@@ -14,16 +14,16 @@ the E-vident (http://github.com/qiime/evident) project master branch at git SHA
 dde2a06f2d990db8b09da65764cd27fc047db788
 """
 
-import re
+import sys
+import click
+import subprocess
 
-from os import walk, getcwd, chdir
-from sys import exit
-from glob import glob
-from os.path import join, abspath, dirname, split, exists
+from os.path import join, abspath, dirname
+from unittest import TestLoader, TextTestRunner
 
-from emperor.util import get_emperor_project_dir
 from emperor import __version__
 
+<<<<<<< HEAD
 from qcli.util import qcli_system_call
 from qcli.test import run_script_usage_tests
 from qcli.option_parsing import parse_command_line_parameters, make_option
@@ -85,26 +85,61 @@ def main():
         if get_emperor_project_dir().endswith('/lib'):
             emperor_scripts_dir = abspath(join(get_emperor_project_dir()[:-3],
                                                'scripts/'))
+=======
+>>>>>>> new-api
 
-    else:
-        emperor_scripts_dir = abspath(opts.emperor_scripts_dir)
+def console(cmd, stdout=None, stderr=None):
+    """Small subprocess helper function
+
+    Originally based on this SO answer:
+    http://stackoverflow.com/a/33542403/379593
+    """
+    if stdout is None:
+        stdout = subprocess.PIPE
+    if stderr is None:
+        stderr = subprocess.PIPE
+
+    process = subprocess.Popen(cmd, shell=True, stdout=stdout, stderr=stderr)
+    o, e = process.communicate()
+
+    return '' if o is None else o, '' if e is None else e, process.returncode
+
+
+@click.command()
+@click.option('--suppress_unit_tests', help="suppress execution of Emperor's "
+              "unit tests", default=False, is_flag=True, show_default=True)
+@click.option('--suppress_javascript_unit_tests', help="suppress Emperor's "
+              "JavaScript unit tests.", default=False, is_flag=True,
+              show_default=True)
+@click.option('--unittest_glob', help='wildcard pattern to match the unit '
+              'tests to execute.', default=None, is_flag=True,
+              show_default=True)
+@click.version_option(__version__)
+def test(suppress_unit_tests, suppress_javascript_unit_tests, unittest_glob):
+    """Run Emperor's test suite.
+
+    Run the Python unit tests or the JavaScript unit tests (requires
+    phantomjs to be installed).
+    """
 
     # make a sanity check
+<<<<<<< HEAD
     if (suppress_unit_tests and suppress_script_usage_tests and
             suppress_javascript_unit_tests):
         option_parser.error("All tests have been suppresed. Nothing to run.")
+=======
+    if suppress_unit_tests and suppress_javascript_unit_tests:
+        raise click.UsageError("All tests have been suppresed. Nothing to "
+                               "run.")
+>>>>>>> new-api
 
     test_dir = abspath(dirname(__file__))
-
-    unittest_good_pattern = re.compile('OK\s*$')
-    application_not_found_pattern = re.compile('ApplicationNotFoundError')
-    python_name = 'python'
     bad_tests = []
-    missing_application_tests = []
 
     # Run through all of Emperor's unit tests, and keep track of any files
     # which fail unit tests, note that these are the unit tests only
     if not suppress_unit_tests:
+<<<<<<< HEAD
         unittest_names = []
         if not unittest_glob:
             for root, dirs, files in walk(test_dir):
@@ -157,26 +192,30 @@ def main():
 
         # running script usage tests breaks the current working directory
         chdir(initial_working_directory)
+=======
+        res = TextTestRunner().run(TestLoader().discover(start_dir=test_dir))
+>>>>>>> new-api
 
     if not suppress_javascript_unit_tests:
+        click.echo("JavaScript Test Suite")
         runner = join(test_dir, 'javascript_tests', 'runner.js')
         index = join(test_dir, 'javascript_tests', 'index.html')
 
-        o, e, r = qcli_system_call('phantomjs %s %s' % (runner, index))
-
-        if o:
-            print o
-        if e:
-            print e
+        # phantomjs has some problems where the program will not terminate if
+        # an error occurs during the execution of the test suite. That's why
+        # all output is sent to standard output and standard error.
+        _, _, r = console('phantomjs %s %s' % (runner, index), sys.stdout,
+                          sys.stderr)
 
         # if all the tests passed
         javascript_tests_passed = True if r == 0 else False
     else:
         javascript_tests_passed = True
 
-    print "==============\nResult summary\n=============="
+    click.echo("==============\nResult summary\n==============")
 
     if not suppress_unit_tests:
+<<<<<<< HEAD
         print "\nUnit test result summary\n------------------------\n"
         if bad_tests:
             print("\nFailed the following unit tests.\n%s"
@@ -205,19 +244,37 @@ def main():
     if not suppress_javascript_unit_tests:
         print('\nJavaScript unit tests result summary\n'
               '------------------------------------\n')
-        if javascript_tests_passed:
-            print 'All JavaScript unit tests passed.\n'
+=======
+        click.echo("\nUnit test result summary\n------------------------\n")
+        if not res.wasSuccessful():
+            bad_tests = [i[0].id() for i in res.failures + res.errors]
+            click.echo("\nThe following unit tests failed:\n%s"
+                       % '\n'.join(bad_tests))
         else:
-            print 'JavaScript unit tests failed, check the summary above.'
+            click.echo("\nAll unit tests passed.\n")
+
+    if not suppress_javascript_unit_tests:
+        click.echo('\nJavaScript unit tests result summary\n'
+                   '------------------------------------\n')
+>>>>>>> new-api
+        if javascript_tests_passed:
+            click.echo('All JavaScript unit tests passed.\n')
+        else:
+            click.echo('JavaScript unit tests failed, check the summary '
+                       'above.')
 
     # In case there were no failures of any type, exit with a return code of 0
     return_code = 1
+<<<<<<< HEAD
     if (len(bad_tests) == 0 and len(missing_application_tests) == 0 and
             script_usage_failures == 0 and javascript_tests_passed):
+=======
+    if (len(bad_tests) == 0 and javascript_tests_passed):
+>>>>>>> new-api
         return_code = 0
 
-    return return_code
+    exit(return_code)
 
 
 if __name__ == "__main__":
-    exit(main())
+    test()
