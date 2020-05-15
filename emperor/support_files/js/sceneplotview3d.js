@@ -140,6 +140,7 @@ define([
      */
     this.control = new THREE.OrbitControls(this.camera,
                                            $container.get(0));
+    this.control.enabled = false;
     this.control.enableKeys = true;
     this.control.rotateSpeed = 1.0;
     this.control.zoomSpeed = 1.2;
@@ -166,7 +167,7 @@ define([
      * Events allowed for callbacks. DO NOT EDIT.
      * @type {String[]}
      */
-    this.EVENTS = ['click', 'dblclick', 'mousemove', 'mouseup', 'mousedown', 'keydown', 'keyup'];
+    this.EVENTS = ['click', 'dblclick'];
     /** @private */
     this._subscribers = {};
 
@@ -174,25 +175,23 @@ define([
       this._subscribers[this.EVENTS[i]] = [];
     }
 
-    this.selectionBox = new THREE.SelectionBox(this.camera, this.scene );
-    this.selectionHelper = new THREE.SelectionHelper( this.selectionBox, renderer, 'selectBox' );
+    this.selectionBox = new THREE.SelectionBox(this.camera, this.scene);
+
+    // disable this fella by default
+    this.selectionHelper = null; //new THREE.SelectionHelper(this.selectionBox,
+                           //                          renderer, 'selectBox');
 
     $container.attr('tabindex', '0');
     $container.on('keydown', function(event) {
-      console.log("key pressed");
-      if (event.key === 's'){
-        scope.control.enableRotate = false;
+      if (event.shiftKey) {
+        scope.control.enabled = false;
         selectMode = true;
       }
     })
-    .on('keyup', function(event){
-      console.log("key released");
-      if (event.key === 's'){
-        scope.control.enableRotate = true;
+    .on('keyup', function(event) {
+        scope.control.enabled = true;
         selectMode = false;
-      }
-    })
-
+    });
 
     // Add callback call when sample is clicked
     // Double and single click together from: http://stackoverflow.com/a/7845282
@@ -214,59 +213,88 @@ define([
     .on('dblclick', function(event) {
         event.preventDefault();  //cancel system double-click event
     })
-    .on('mousedown', function ( event ) {
-      var element = scope.renderer.domElement;
-      var offset = $(element).offset();
-      for ( var item of scope.selectionBox.collection ) {
-        item.material.emissive.set( 0x000000 );
+    .on('mousedown', function(event) {
+
+      if (selectMode === false) {
+        return;
       }
-      scope.selectionBox.startPoint.set(
-        (( event.clientX - offset.left )/element.width) * 2 - 1,
-        - (( event.clientY - offset.top )/element.height) * 2 + 1,
-        0.5 );
-    })
-    .on('mousemove', function(event){
+
+
       var element = scope.renderer.domElement;
       var offset = $(element).offset();
-        if ( scope.selectionHelper.isDown ) {
-					for ( var i = 0; i < scope.selectionBox.collection.length; i ++ ) {
-						scope.selectionBox.collection[ i ].material.emissive.set( 0x000000 );
-					}
-					scope.selectionBox.endPoint.set(
-            (( event.clientX - offset.left )/element.width) * 2 - 1,
-            - (( event.clientY - offset.top )/element.height) * 2 + 1,
-            0.5 );
+
+      // for (var item in scope.selectionBox.collection) {
+      //   if (item.type !== 'Line') {
+      //     item.material.emissive.set(0x000000);
+      //   }
+      // }
+
+      for (i = 0; i < scope.selectionBox.collection.length; i++) {
+        if (scope.selectionBox.collection[i].type !== 'Line') {
+          scope.selectionBox.collection[i].material.emissive.set(0x000000);
+        }
+      }
+
+
+
+      scope.selectionBox.startPoint.set(
+        ((event.clientX - offset.left) / element.width) * 2 - 1,
+        -((event.clientY - offset.top) / element.height) * 2 + 1,
+        0.5);
+    })
+    .on('mousemove', function(event) {
+
+      if (selectMode === false) {
+        return;
+      }
+
+
+      var element = scope.renderer.domElement;
+      var offset = $(element).offset();
+        if (scope.selectionHelper.isDown) {
+          for (i = 0; i < scope.selectionBox.collection.length; i++) {
+            if (scope.selectionBox.collection[i].type !== 'Line') {
+              scope.selectionBox.collection[i].material.emissive.set(0x000000);
+            }
+          }
+          scope.selectionBox.endPoint.set(
+            ((event.clientX - offset.left) / element.width) * 2 - 1,
+            - ((event.clientY - offset.top) / element.height) * 2 + 1,
+            0.5);
 
           var allSelected = scope.selectionBox.select();
-					for ( var i = 0; i < allSelected.length; i ++ ) {
-						allSelected[ i ].material.emissive.set( 0xffffff );
-					}
 
-          // // draw the frustm
-          // for ( var i = 0; i < scope.selectionBox.lineBox.length; i ++ ) {
-					// 	scope.scene.add( scope.selectionBox.lineBox[i] );
-					// }
-
-
-				}
+          if (allSelected) {
+            // check these are only plottables, not lines
+            for (i = 0; i < allSelected.length; i++) {
+              if (allSelected[i].type !== 'Line') {
+                allSelected[i].material.emissive.set(0xffffff);
+              }
+            }
+          }
+        }
         scope.needsUpdate = true;
     })
-    .on('mouseup', function ( event ) {
+    .on('mouseup', function(event) {
+
+      if (selectMode === false) {
+        return;
+      }
+
+
       var element = scope.renderer.domElement;
       var offset = $(element).offset();
       scope.selectionBox.endPoint.set(
-        (( event.clientX - offset.left )/element.width) * 2 - 1,
-        - (( event.clientY - offset.top )/element.height) * 2 + 1,
-        0.5 );
+        ((event.clientX - offset.left) / element.width) * 2 - 1,
+        - ((event.clientY - offset.top) / element.height) * 2 + 1,
+        0.5);
       var allSelected = scope.selectionBox.select();
-      for ( var i = 0; i < allSelected.length; i ++ ) {
-        allSelected[ i ].material.emissive.set( 0xffffff );
+      for (i = 0; i < allSelected.length; i++) {
+        if (allSelected[i].type !== 'Line') {
+          allSelected[i].material.emissive.set(0xffffff);
+        }
       }
 
-      // draw the frustm
-      for ( var i = 0; i < scope.selectionBox.lineBox.length; i ++ ) {
-        scope.scene.add( scope.selectionBox.lineBox[i] );
-      }
       scope.needsUpdate = true;
     });
 
