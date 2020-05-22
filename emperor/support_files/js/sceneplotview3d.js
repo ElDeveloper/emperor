@@ -102,7 +102,7 @@ define([
     var backFrust = _.max([max * 100, 100]);
 
     // Boxselection Indicator
-    var selectMode = false;
+    // var selectMode = false;
 
     /**
      * Camera used to display the scene.
@@ -140,8 +140,8 @@ define([
      */
     this.control = new THREE.OrbitControls(this.camera,
                                            $container.get(0));
-    this.control.enabled = false;
-    this.control.enableKeys = true;
+    this.control.enabled = true;
+    this.control.enableKeys = false;
     this.control.rotateSpeed = 1.0;
     this.control.zoomSpeed = 1.2;
     this.control.panSpeed = 0.8;
@@ -153,6 +153,36 @@ define([
 
     this.updateCameraTarget();
     this.control.update();
+
+    /**
+     * TODO:
+     */
+    this.selectionBox = new THREE.SelectionBox(this.camera, this.scene);
+
+    /**
+     * TODO:
+     *
+     * This object is disabled by default, and is only renabled when the user
+     * holds the shift key.
+     */
+    this.selectionHelper = new THREE.SelectionHelper(scope.selectionBox,
+                                                     renderer, 'selectBox');
+    this.selectionHelper.enabled = false;
+
+    // Link the callbacks for the selection box
+    $container.attr('tabindex', '0');
+    $container.on('keydown', function(event) {
+       if (event.key == 'Shift') {
+         scope.control.enabled = false;
+         scope.selectionHelper.enabled = true;
+       }
+
+    }).on('keyup', function(event) {
+       if (event.key == 'Shift') {
+         scope.control.enabled = true;
+         scope.selectionHelper.enabled = false;
+       }
+    });
 
     /**
      * Object with "min" and "max" attributes each of which is an array with
@@ -167,31 +197,13 @@ define([
      * Events allowed for callbacks. DO NOT EDIT.
      * @type {String[]}
      */
-    this.EVENTS = ['click', 'dblclick'];
+    this.EVENTS = ['click', 'dblclick', 'selected'];
     /** @private */
     this._subscribers = {};
 
     for (var i = 0; i < this.EVENTS.length; i++) {
       this._subscribers[this.EVENTS[i]] = [];
     }
-
-    this.selectionBox = new THREE.SelectionBox(this.camera, this.scene);
-
-    // disable this fella by default
-    this.selectionHelper = null; //new THREE.SelectionHelper(this.selectionBox,
-                           //                          renderer, 'selectBox');
-
-    $container.attr('tabindex', '0');
-    $container.on('keydown', function(event) {
-      if (event.shiftKey) {
-        scope.control.enabled = false;
-        selectMode = true;
-      }
-    })
-    .on('keyup', function(event) {
-        scope.control.enabled = true;
-        selectMode = false;
-    });
 
     // Add callback call when sample is clicked
     // Double and single click together from: http://stackoverflow.com/a/7845282
@@ -212,22 +224,16 @@ define([
     })
     .on('dblclick', function(event) {
         event.preventDefault();  //cancel system double-click event
-    })
-    .on('mousedown', function(event) {
+    });
 
-      if (selectMode === false) {
+    // add callbacks for the plottable selection
+    $container.on('mousedown', function(event) {
+      if (!scope.selectionHelper.enabled) {
         return;
       }
 
-
       var element = scope.renderer.domElement;
       var offset = $(element).offset();
-
-      // for (var item in scope.selectionBox.collection) {
-      //   if (item.type !== 'Line') {
-      //     item.material.emissive.set(0x000000);
-      //   }
-      // }
 
       for (i = 0; i < scope.selectionBox.collection.length; i++) {
         if (scope.selectionBox.collection[i].type !== 'Line') {
@@ -235,52 +241,46 @@ define([
         }
       }
 
-
-
       scope.selectionBox.startPoint.set(
         ((event.clientX - offset.left) / element.width) * 2 - 1,
         -((event.clientY - offset.top) / element.height) * 2 + 1,
         0.5);
     })
     .on('mousemove', function(event) {
-
-      if (selectMode === false) {
+      if (!scope.selectionHelper.enabled) {
         return;
       }
-
 
       var element = scope.renderer.domElement;
       var offset = $(element).offset();
-        if (scope.selectionHelper.isDown) {
-          for (i = 0; i < scope.selectionBox.collection.length; i++) {
-            if (scope.selectionBox.collection[i].type !== 'Line') {
-              scope.selectionBox.collection[i].material.emissive.set(0x000000);
-            }
-          }
-          scope.selectionBox.endPoint.set(
-            ((event.clientX - offset.left) / element.width) * 2 - 1,
-            - ((event.clientY - offset.top) / element.height) * 2 + 1,
-            0.5);
 
-          var allSelected = scope.selectionBox.select();
+      for (i = 0; i < scope.selectionBox.collection.length; i++) {
+        if (scope.selectionBox.collection[i].type !== 'Line') {
+          scope.selectionBox.collection[i].material.emissive.set(0x000000);
+        }
+      }
+      scope.selectionBox.endPoint.set(
+        ((event.clientX - offset.left) / element.width) * 2 - 1,
+        - ((event.clientY - offset.top) / element.height) * 2 + 1,
+        0.5);
 
-          if (allSelected) {
-            // check these are only plottables, not lines
-            for (i = 0; i < allSelected.length; i++) {
-              if (allSelected[i].type !== 'Line') {
-                allSelected[i].material.emissive.set(0xffffff);
-              }
-            }
+      var allSelected = scope.selectionBox.select();
+
+      if (allSelected) {
+        // check these are only plottables, not lines
+        for (i = 0; i < allSelected.length; i++) {
+          if (allSelected[i].type !== 'Line') {
+            allSelected[i].material.emissive.set(0xffffff);
           }
         }
-        scope.needsUpdate = true;
-    })
-    .on('mouseup', function(event) {
-
-      if (selectMode === false) {
-        return;
       }
 
+      scope.needsUpdate = true;
+    })
+    .on('mouseup', function(event) {
+      if (!scope.selectionHelper.enabled) {
+        return;
+      }
 
       var element = scope.renderer.domElement;
       var offset = $(element).offset();
@@ -294,9 +294,11 @@ define([
           allSelected[i].material.emissive.set(0xffffff);
         }
       }
-
       scope.needsUpdate = true;
     });
+
+
+    this.control.update();
 
     // register callback for populating info with clicked sample name
     // set the timeout for fading out the info div
