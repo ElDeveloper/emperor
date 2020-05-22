@@ -21,6 +21,7 @@ var SelectionHelper = ( function () {
 		this.pointBottomRight = new Vector2();
 
 		this.isDown = false;
+    this.enabled = true;
 
 		this.renderer.domElement.addEventListener( 'mousedown', function ( event ) {
 
@@ -49,6 +50,9 @@ var SelectionHelper = ( function () {
 	}
 
 	SelectionHelper.prototype.onSelectStart = function ( event ) {
+    if (!this.enabled) {
+      return;
+    }
 
 		this.renderer.domElement.parentElement.appendChild( this.element );
 
@@ -63,6 +67,9 @@ var SelectionHelper = ( function () {
 	};
 
 	SelectionHelper.prototype.onSelectMove = function ( event ) {
+    if (!this.enabled) {
+      return;
+    }
 
 		this.pointBottomRight.x = Math.max( this.startPoint.x, event.clientX );
 		this.pointBottomRight.y = Math.max( this.startPoint.y, event.clientY );
@@ -77,8 +84,10 @@ var SelectionHelper = ( function () {
 	};
 
 	SelectionHelper.prototype.onSelectOver = function () {
-
-		this.element.parentElement.removeChild( this.element );
+    // prevent partial selection box creations
+    if (this.element.parentElement) {
+		  this.element.parentElement.removeChild( this.element );
+    }
 
 	};
 
