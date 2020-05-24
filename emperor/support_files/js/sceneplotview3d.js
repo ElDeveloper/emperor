@@ -169,21 +169,6 @@ define([
                                                      renderer, 'selectBox');
     this.selectionHelper.enabled = false;
 
-    // Link the callbacks for the selection box
-    $container.attr('tabindex', '0');
-    $container.on('keydown', function(event) {
-       if (event.key == 'Shift') {
-         scope.control.enabled = false;
-         scope.selectionHelper.enabled = true;
-       }
-
-    }).on('keyup', function(event) {
-       if (event.key == 'Shift') {
-         scope.control.enabled = true;
-         scope.selectionHelper.enabled = false;
-       }
-    });
-
     /**
      * Object with "min" and "max" attributes each of which is an array with
      * the ranges that covers all of the decomposition views.
@@ -228,14 +213,19 @@ define([
 
     // add callbacks for the plottable selection
     $container.on('mousedown', function(event) {
-      if (!scope.selectionHelper.enabled) {
+      // ignore the selection event if shift is not being held
+      if (!event.shiftKey) {
         return;
       }
+
+      scope.control.enabled = false;
+      scope.selectionHelper.enabled = true;
+      scope.selectionHelper.onSelectStart(event);
 
       var element = scope.renderer.domElement;
       var offset = $(element).offset();
 
-      for (i = 0; i < scope.selectionBox.collection.length; i++) {
+      for (var i = 0; i < scope.selectionBox.collection.length; i++) {
         if (scope.selectionBox.collection[i].type !== 'Line') {
           scope.selectionBox.collection[i].material.emissive.set(0x000000);
         }
@@ -247,14 +237,17 @@ define([
         0.5);
     })
     .on('mousemove', function(event) {
-      if (!scope.selectionHelper.enabled) {
+      // ignore if the user is not holding the shift key or the orbit control
+      // is enabled and he selection disabled
+      if (!event.shiftKey || (scope.control.enabled && !scope.selectionHelper.enabled )) {
         return;
       }
+      console.log('mouse is moving');
 
       var element = scope.renderer.domElement;
       var offset = $(element).offset();
 
-      for (i = 0; i < scope.selectionBox.collection.length; i++) {
+      for (var i = 0; i < scope.selectionBox.collection.length; i++) {
         if (scope.selectionBox.collection[i].type !== 'Line') {
           scope.selectionBox.collection[i].material.emissive.set(0x000000);
         }
@@ -278,22 +271,28 @@ define([
       scope.needsUpdate = true;
     })
     .on('mouseup', function(event) {
-      if (!scope.selectionHelper.enabled) {
+      // if the user is not already selecting data then ignore
+      if (!scope.selectionHelper.enabled || scope.control.enabled) {
         return;
       }
 
-      var element = scope.renderer.domElement;
-      var offset = $(element).offset();
-      scope.selectionBox.endPoint.set(
-        ((event.clientX - offset.left) / element.width) * 2 - 1,
-        - ((event.clientY - offset.top) / element.height) * 2 + 1,
-        0.5);
-      var allSelected = scope.selectionBox.select();
-      for (i = 0; i < allSelected.length; i++) {
-        if (allSelected[i].type !== 'Line') {
-          allSelected[i].material.emissive.set(0xffffff);
+      // otherwise if shift is being held then keep selecting, otherwise ignore
+      if (event.shiftKey) {
+        var element = scope.renderer.domElement;
+        var offset = $(element).offset();
+        scope.selectionBox.endPoint.set(
+          ((event.clientX - offset.left) / element.width) * 2 - 1,
+          - ((event.clientY - offset.top) / element.height) * 2 + 1,
+          0.5);
+        var allSelected = scope.selectionBox.select();
+        for (var i = 0; i < allSelected.length; i++) {
+          if (allSelected[i].type !== 'Line') {
+            allSelected[i].material.emissive.set(0xffffff);
+          }
         }
       }
+      scope.control.enabled = true;
+      scope.selectionHelper.enabled = false;
       scope.needsUpdate = true;
     });
 
