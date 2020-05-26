@@ -260,12 +260,14 @@ define([
 
     // add callbacks for the plottable selection
     $container.on('mousedown', function(event) {
-      // ignore the selection event if shift is not being held
-      if (!event.shiftKey) {
+      // ignore the selection event if shift is not being held or if parallel
+      // plots are being visualized at the moment
+      if (!event.shiftKey || scope.parallelController.enabled) {
         return;
       }
 
       scope.control.enabled = false;
+      scope.scatterController.enabled = false;
       scope.selectionHelper.enabled = true;
       scope.selectionHelper.onSelectStart(event);
 
@@ -289,7 +291,6 @@ define([
       if (!event.shiftKey || (scope.control.enabled && !scope.selectionHelper.enabled )) {
         return;
       }
-      console.log('mouse is moving');
 
       var element = scope.renderer.domElement;
       var offset = $(element).offset();
@@ -339,6 +340,7 @@ define([
         }
       }
       scope.control.enabled = true;
+      scope.scatterController.enabled = true;
       scope.selectionHelper.enabled = false;
       scope.needsUpdate = true;
     });
