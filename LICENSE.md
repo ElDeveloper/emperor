@@ -59,10 +59,10 @@ OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
-#### Chroma (v1.1.1)
+#### Chroma (v2.1.0)
 [chroma.js](https://github.com/gka/chroma.js) - JavaScript library for color conversions
 
-Copyright (c) 2011-2013, Gregor Aisch
+Copyright (c) 2011-2019, Gregor Aisch
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -139,7 +139,7 @@ THE SOFTWARE.
 
 --------------------------------------------------------------------------------
 
-### THREE.js ([r116](https://github.com/mrdoob/three.js/tree/r116) is released under the MIT License
+### THREE.js ([r87](https://github.com/mrdoob/three.js/tree/r87) is released under the MIT License
 
 The MIT License
 

@@ -6,6 +6,8 @@ define(['three', 'projector'], function(THREE, Projector){
  * which allows us to insert text to the SVG renderer. The text has to be
  * created using sprites and have the attribute text. 
  *
+ * It also includes a change in getSvgColor to use fill-opacity instead of rgba
+ * when the opacity is not zero or one.
  */
 
 THREE.SVGObject = function ( node ) {
@@ -21,11 +23,20 @@ THREE.SVGObject.prototype.constructor = THREE.SVGObject;
 
 THREE.SVGRenderer = function () {
 
+	this.node = node;
+
+};
+
+THREE.SVGObject.prototype = Object.create( THREE.Object3D.prototype );
+THREE.SVGObject.prototype.constructor = THREE.SVGObject;
+
+THREE.SVGRenderer = function () {
+
 	var _this = this,
-		_renderData, _elements, _lights,
-		_projector = new THREE.Projector(),
-		_svg = document.createElementNS( 'http://www.w3.org/2000/svg', 'svg' ),
-		_svgWidth, _svgHeight, _svgWidthHalf, _svgHeightHalf,
+	_renderData, _elements, _lights,
+	_projector = new THREE.Projector(),
+	_svg = document.createElementNS( 'http://www.w3.org/2000/svg', 'svg' ),
+	_svgWidth, _svgHeight, _svgWidthHalf, _svgHeightHalf,
 
 		_v1, _v2, _v3,
 
@@ -39,20 +50,20 @@ THREE.SVGRenderer = function () {
 		_pointLights = new THREE.Color(),
 		_clearColor = new THREE.Color(),
 
-		_vector3 = new THREE.Vector3(), // Needed for PointLight
-		_centroid = new THREE.Vector3(),
-		_normal = new THREE.Vector3(),
-		_normalViewMatrix = new THREE.Matrix3(),
+	_vector3 = new THREE.Vector3(), // Needed for PointLight
+	_centroid = new THREE.Vector3(),
+	_normal = new THREE.Vector3(),
+	_normalViewMatrix = new THREE.Matrix3(),
 
-		_viewMatrix = new THREE.Matrix4(),
-		_viewProjectionMatrix = new THREE.Matrix4(),
+	_viewMatrix = new THREE.Matrix4(),
+	_viewProjectionMatrix = new THREE.Matrix4(),
 
-		_svgPathPool = [],
-		_svgNode, _pathCount = 0,
+	_svgPathPool = [],
+	_svgNode, _pathCount = 0,
 
-		_currentPath, _currentStyle,
+	_currentPath, _currentStyle,
 
-		_quality = 1, _precision = null;
+	_quality = 1, _precision = null;
 
 	this.domElement = _svg;
 
@@ -92,7 +103,7 @@ THREE.SVGRenderer = function () {
 
 	this.setPixelRatio = function () {};
 
-	this.setSize = function ( width, height ) {
+	this.setSize = function( width, height ) {
 
 		_svgWidth = width; _svgHeight = height;
 		_svgWidthHalf = _svgWidth / 2; _svgHeightHalf = _svgHeight / 2;
@@ -124,16 +135,26 @@ THREE.SVGRenderer = function () {
 
 	}
 
-	function convert( c ) {
+	function getSvgColor ( color, opacity ) {
 
-		return _precision !== null ? c.toFixed( _precision ) : c;
+		var arg = Math.floor( color.r * 255 ) + ',' + Math.floor( color.g * 255 ) + ',' + Math.floor( color.b * 255 );
+
+		if ( opacity === undefined || opacity === 1 ) return 'rgb(' + arg + ')';
+
+		return 'rgb(' + arg + '); fill-opacity: ' + opacity;
+
+	}
+
+	function convert ( c ) {
+
+		return _precision !== null ? c.toFixed(_precision) : c;
 
 	}
 
 	this.clear = function () {
 
 		removeChildNodes();
-		_svg.style.backgroundColor = _clearColor.getStyle();
+		_svg.style.backgroundColor = getSvgColor( _clearColor, _clearAlpha );
 
 	};
 
@@ -151,7 +172,7 @@ THREE.SVGRenderer = function () {
 		if ( background && background.isColor ) {
 
 			removeChildNodes();
-			_svg.style.backgroundColor = background.getStyle();
+			_svg.style.backgroundColor = getSvgColor( background );
 
 		} else if ( this.autoClear === true ) {
 
@@ -262,9 +283,7 @@ THREE.SVGRenderer = function () {
 				_vector3.setFromMatrixPosition( object.matrixWorld );
 				_vector3.applyMatrix4( _viewProjectionMatrix );
 
-				if ( _vector3.z < - 1 || _vector3.z > 1 ) return;
-
-				var x = _vector3.x * _svgWidthHalf;
+				var x =   _vector3.x * _svgWidthHalf;
 				var y = - _vector3.y * _svgHeightHalf;
 
 				var node = object.node;
@@ -364,18 +383,16 @@ THREE.SVGRenderer = function () {
 		var scaleY = element.scale.y * _svgHeightHalf;
 
 		if ( material.isPointsMaterial ) {
-
 			scaleX *= material.size;
 			scaleY *= material.size;
-
 		}
 
-		var path = 'M' + convert( v1.x - scaleX * 0.5 ) + ',' + convert( v1.y - scaleY * 0.5 ) + 'h' + convert( scaleX ) + 'v' + convert( scaleY ) + 'h' + convert( - scaleX ) + 'z';
+		var path = 'M' + convert( v1.x - scaleX * 0.5 ) + ',' + convert( v1.y - scaleY * 0.5 ) + 'h' + convert( scaleX ) + 'v' + convert( scaleY ) + 'h' + convert(-scaleX) + 'z';
 		var style = "";
 
 		if ( material.isSpriteMaterial || material.isPointsMaterial ) {
 
-			style = 'fill:' + material.color.getStyle() + ';fill-opacity:' + material.opacity;
+			style = 'fill:' + getSvgColor( material.color, material.opacity );
 
 		}
 
@@ -409,7 +426,7 @@ THREE.SVGRenderer = function () {
 
 		if ( material.isLineBasicMaterial ) {
 
-			var style = 'fill:none;stroke:' + material.color.getStyle() + ';stroke-opacity:' + material.opacity + ';stroke-width:' + material.linewidth + ';stroke-linecap:' + material.linecap;
+			var style = 'fill:none;stroke:' + getSvgColor( material.color, material.opacity ) + ';stroke-width:' + material.linewidth + ';stroke-linecap:' + material.linecap;
 
 			if ( material.isLineDashedMaterial ) {
 
@@ -459,9 +476,9 @@ THREE.SVGRenderer = function () {
 
 			_color.multiply( _diffuseColor ).add( material.emissive );
 
-		} else if ( material.isMeshNormalMaterial ) {
+		} else if ( material instanceof THREE.MeshNormalMaterial ) {
 
-			_normal.copy( element.normalModel ).applyMatrix3( _normalViewMatrix ).normalize();
+			_normal.copy( element.normalModel ).applyMatrix3( _normalViewMatrix );
 
 			_color.setRGB( _normal.x, _normal.y, _normal.z ).multiplyScalar( 0.5 ).addScalar( 0.5 );
 
@@ -469,11 +486,11 @@ THREE.SVGRenderer = function () {
 
 		if ( material.wireframe ) {
 
-			style = 'fill:none;stroke:' + _color.getStyle() + ';stroke-opacity:' + material.opacity + ';stroke-width:' + material.wireframeLinewidth + ';stroke-linecap:' + material.wireframeLinecap + ';stroke-linejoin:' + material.wireframeLinejoin;
+			style = 'fill:none;stroke:' + getSvgColor( _color, material.opacity ) + ';stroke-width:' + material.wireframeLinewidth + ';stroke-linecap:' + material.wireframeLinecap + ';stroke-linejoin:' + material.wireframeLinejoin;
 
 		} else {
 
-			style = 'fill:' + _color.getStyle() + ';fill-opacity:' + material.opacity;
+			style = 'fill:' + getSvgColor( _color, material.opacity );
 
 		}
 
@@ -481,29 +498,11 @@ THREE.SVGRenderer = function () {
 
 	}
 
-	// Hide anti-alias gaps
-
-	function expand( v1, v2, pixels ) {
-
-		var x = v2.x - v1.x, y = v2.y - v1.y,
-			det = x * x + y * y, idet;
-
-		if ( det === 0 ) return;
-
-		idet = pixels / Math.sqrt( det );
-
-		x *= idet; y *= idet;
-
-		v2.x += x; v2.y += y;
-		v1.x -= x; v1.y -= y;
-
-	}
-
-	function addPath( style, path ) {
+	function addPath ( style, path ) {
 
 		if ( _currentStyle === style ) {
 
-			_currentPath += path;
+			_currentPath += path
 
 		} else {
 
@@ -572,9 +571,8 @@ THREE.SVGRenderer = function () {
 
 	}
 
+
 };
-
-
 
 return THREE.SVGRenderer;
 });

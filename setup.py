@@ -9,13 +9,13 @@
 
 from setuptools import setup, find_packages
 
-__version__ = "1.0.0beta20-dev"
+__version__ = "1.0.0-dev"
 __maintainer__ = "Emperor development team"
 __email__ = "yoshiki89@gmail.com"
 
 # based on the text found in github.com/qiime/pynast
 classes = """
-    Development Status :: 4 - Beta
+    Development Status :: 5 - Production/Stable
     License :: OSI Approved :: BSD License
     Topic :: Software Development :: Libraries :: Application Frameworks
     Topic :: Software Development :: User Interfaces
@@ -50,7 +50,6 @@ setup(
     maintainer_email=__email__,
     url='http://github.com/biocore/emperor',
     packages=find_packages(),
-    scripts=['scripts/make_emperor.py'],
     package_data={
         'emperor': ['support_files/vendor/js/three.js-plugins/*.js',
                     'support_files/vendor/js/*.js',

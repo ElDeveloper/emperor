@@ -35,6 +35,8 @@ div.emperor-tab-div{
   padding-bottom: 0px;
   overflow: auto;
   align: center; /*align the contents to the center*/
+  height:inherit;
+  overflow:auto;
 }
 
 /**
@@ -87,10 +89,3 @@ div.colorbox {
   box-shadow: -3px -2px 4px white;
   border-bottom: none;
 }
-
-
-.selectBox {
-				border: 1px solid #55aaff;
-				background-color: rgba(75, 160, 255, 0.3);
-				position: fixed;
-			}
