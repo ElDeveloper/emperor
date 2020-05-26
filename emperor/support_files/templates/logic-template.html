@@ -45,10 +45,12 @@ var emperorRequire = require.config({
   'slickgrid': '{{ base_url }}/vendor/js/slick.grid.min',
   'slickformatters': '{{ base_url }}/vendor/js/slick.editors.min',
   'slickeditors': '{{ base_url }}/vendor/js/slick.formatters.min',
+  'slickdataview': '{{ base_url }}/vendor/js/slick.dataview.min',
 
   /* Emperor's objects */
   'util': '{{ base_url }}/js/util',
   'model': '{{ base_url }}/js/model',
+  'multi-model': '{{ base_url }}/js/multi-model',
   'view': '{{ base_url }}/js/view',
   'controller': '{{ base_url }}/js/controller',
   'draw': '{{ base_url }}/js/draw',
@@ -56,6 +58,7 @@ var emperorRequire = require.config({
   'shapes': '{{ base_url }}/js/shapes',
   'animationdirector': '{{ base_url }}/js/animate',
   'trajectory': '{{ base_url }}/js/trajectory',
+  'uistate': '{{ base_url }}/js/ui-state',
 
   /* controllers */
   'abcviewcontroller': '{{ base_url }}/js/abc-view-controller',
@@ -96,7 +99,8 @@ var emperorRequire = require.config({
     'deps': ['blob']
   },
   'slickcore': ['jqueryui'],
-  'slickgrid': ['slickcore', 'jquery_drag', 'slickformatters', 'slickeditors']
+  'slickgrid': ['slickcore', 'jquery_drag', 'slickformatters', 'slickeditors',
+                'slickdataview']
 }
 });
 

@@ -5,9 +5,11 @@ requirejs([
     'view',
     'viewcontroller',
     'slickgrid',
-    'colorviewcontroller'
+    'colorviewcontroller',
+    'multi-model',
+    'uistate'
 ], function($, _, model, DecompositionView, viewcontroller, SlickGrid,
-            ColorViewController) {
+            ColorViewController, MultiModel, UIState) {
   $(document).ready(function() {
     var EmperorAttributeABC = viewcontroller.EmperorAttributeABC;
     var DecompositionModel = model.DecompositionModel;
@@ -16,6 +18,9 @@ requirejs([
     module('ColorViewController', {
       setup: function() {
         this.sharedDecompositionViewDict = {};
+
+        var UIState1 = new UIState();
+        var UIState2 = new UIState();
 
         // setup function
         var data = {name: 'pcoa', sample_ids: ['PC.636', 'PC.635', 'PC.634'],
@@ -36,7 +41,8 @@ requirejs([
         ['PC.635', 'StringValue', 'Fast', '20071112'],
         ['PC.634', '14.7', 'Fast', '20071112']];
         decomp = new DecompositionModel(data, md_headers, metadata);
-        var dv = new DecompositionView(decomp);
+        var multiModel = new MultiModel({'scatter': decomp});
+        var dv = new DecompositionView(multiModel, 'scatter', UIState1);
         this.sharedDecompositionViewDict.scatter = dv;
 
         data = {name: 'biplot', sample_ids: ['tax_1', 'tax_2'],
@@ -52,7 +58,8 @@ requirejs([
         metadata = [['tax_1', '1'],
         ['tax_2', '0']];
         this.decomp = new DecompositionModel(data, md_headers, metadata);
-        this.dv = new DecompositionView(this.decomp);
+        this.multiModel = new MultiModel({'scatter': this.decomp});
+        this.dv = new DecompositionView(this.multiModel, 'scatter', UIState1);
         this.sharedDecompositionViewDict.biplot = dv;
 
         // jackknifed specific
@@ -77,13 +84,17 @@ requirejs([
         ['PC.635', 'StringValue', 'Fast', '20071112'],
         ['PC.634', '14.7', 'Fast', '20071112']];
         decomp = new DecompositionModel(data, md_headers, metadata);
-        this.jackknifedDecView = new DecompositionView(decomp);
+        multiModel = new MultiModel({'scatter': decomp});
+        this.jackknifedDecView = new DecompositionView(multiModel,
+                                                       'scatter',
+                                                       UIState2);
       },
       teardown: function() {
         this.sharedDecompositionViewDict = undefined;
         this.jackknifedDecView = undefined;
         $('#fooligans').remove();
         this.decomp = undefined;
+        this.multiModel = undefined;
       }
     });
 
@@ -93,7 +104,7 @@ requirejs([
 
       assert.ok(ColorViewController.prototype instanceof EmperorAttributeABC);
 
-      var controller = new ColorViewController(
+      var controller = new ColorViewController(new UIState(),
         container, this.sharedDecompositionViewDict);
       equal(controller.title, 'Color');
 
@@ -103,6 +114,8 @@ requirejs([
       // verify the color value is set properly
       equal(controller.$colormapSelect.val(), 'discrete-coloring-qiime');
       equal(controller.$select.val(), null);
+      equal(controller.$searchBar.val(), '');
+      equal(controller.$searchBar.is(':hidden'), true);
 
       equal(controller.$colormapSelect.is(':disabled'), true);
       equal(controller.$scaled.is(':disabled'), true);
@@ -112,8 +125,9 @@ requirejs([
       var container = $('<div id="no-exist" style="height:11px; ' +
                         'width:12px"></div>');
 
-      var controller = new ColorViewController(
+      var controller = new ColorViewController(new UIState(),
         container, this.sharedDecompositionViewDict);
+
       equal(controller.title, 'Color');
 
       equal(controller.isColoringContinuous(), false);
@@ -121,20 +135,22 @@ requirejs([
       controller.setMetadataField('Mixed');
       controller.$colormapSelect.val('Viridis').trigger('chosen:updated');
       controller.$scaled.prop('checked', true).trigger('change');
+      equal(controller.$searchBar.is(':hidden'), true);
 
       equal(controller.isColoringContinuous(), true);
 
       controller.setMetadataField('DOB');
-      controller.$colormapSelect.val('Viridis').trigger('chosen:updated');
-      controller.$scaled.prop('checked', true).trigger('change');
+      controller.$colormapSelect.val('Dark2').trigger('chosen:updated');
+      controller.$scaled.prop('checked', false).trigger('change');
+      equal(controller.$searchBar.is(':hidden'), true);
 
-      equal(controller.isColoringContinuous(), true);
+      equal(controller.isColoringContinuous(), false);
     });
 
     test('Test _nonNumericPlottables', function() {
       var container = $('<div id="no-exist" style="height:11px; ' +
                         'width:12px"></div>');
-      var controller = new ColorViewController(
+      var controller = new ColorViewController(new UIState(),
         container, this.sharedDecompositionViewDict);
       controller.setMetadataField('DOB');
       var decompViewDict = controller.getView();
@@ -551,7 +567,7 @@ requirejs([
 
     test('Testing toJSON', function() {
       var container = $('<div style="height:11px; width:12px"></div>');
-      var controller = new ColorViewController(
+      var controller = new ColorViewController(new UIState(),
         container, this.sharedDecompositionViewDict);
       // Change color on one point
       var idx = 0;
@@ -568,17 +584,24 @@ requirejs([
       deepEqual(obs, exp);
     });
 
-    test('Testing fromJSON', function() {
+    test('Testing fromJSON', function(assert) {
       var json = {category: 'DOB',
                   colormap: 'discrete-coloring-qiime',
                   continuous: false,
                   data: {20070314: '#ff0000', 20071112: '#0000ff'}};
 
       var container = $('<div style="height:11px; width:12px"></div>');
-      var controller = new ColorViewController(
+      var controller = new ColorViewController(new UIState(),
         container, this.sharedDecompositionViewDict);
 
+      controller.setMetadataField('Treatment');
+
       controller.fromJSON(json);
+
+      // check the data is rendered
+      assert.ok(controller.$gridDiv.find(':contains(20070314)').length > 0);
+      assert.ok(controller.$gridDiv.find(':contains(20071112)').length > 0);
+
       var idx = 0;
       var markers = controller.decompViewDict.scatter.markers;
       equal(markers[idx].material.color.getHexString(), 'ff0000');
@@ -587,17 +610,27 @@ requirejs([
       equal(controller.$select.val(), 'DOB');
       equal(controller.$colormapSelect.val(), 'discrete-coloring-qiime');
       equal(controller.$scaled.is(':checked'), false);
+      equal(controller.$searchBar.val(), '');
+      equal(controller.$searchBar.prop('hidden'), false);
     });
 
-    test('Testing fromJSON scaled', function() {
+    test('Testing fromJSON scaled', function(assert) {
       var json = {category: 'Mixed', colormap: 'Viridis',
                   continuous: true, data: {'Non-numeric values': '#ae1221'}};
 
       var container = $('<div style="height:11px; width:12px"></div>');
-      var controller = new ColorViewController(
+      var controller = new ColorViewController(new UIState(),
         container, this.sharedDecompositionViewDict);
 
+      controller.setMetadataField('Treatment');
+
       controller.fromJSON(json);
+
+      // no grid data should be rendered (continuous is set to true)
+      assert.ok(controller.$gridDiv.find(':contains(14.2)').length <= 0);
+      assert.ok(controller.$gridDiv.find(':contains(StringValue)').length <= 0);
+      assert.ok(controller.$gridDiv.find(':contains(14.7)').length <= 0);
+
       var idx = 0;
       var markers = controller.decompViewDict.scatter.markers;
       equal(markers[idx].material.color.getHexString(), '440154');
@@ -607,11 +640,13 @@ requirejs([
       equal(controller.$colormapSelect.val(), 'Viridis');
       equal(controller.$scaled.is(':checked'), true);
       equal(controller.isColoringContinuous(), true);
+      equal(controller.$searchBar.val(), '');
+      equal(controller.$searchBar.prop('hidden'), true);
     });
 
     test('Testing toJSON (null)', function() {
       var container = $('<div style="height:11px; width:12px"></div>');
-      var controller = new ColorViewController(
+      var controller = new ColorViewController(new UIState(),
         container, this.sharedDecompositionViewDict);
       controller.setMetadataField(null);
 
@@ -630,7 +665,7 @@ requirejs([
                   data: {}};
 
       var container = $('<div style="height:11px; width:12px"></div>');
-      var controller = new ColorViewController(
+      var controller = new ColorViewController(new UIState(),
         container, this.sharedDecompositionViewDict);
 
       controller.fromJSON(json);
@@ -642,6 +677,8 @@ requirejs([
       equal(controller.$colormapSelect.val(), 'discrete-coloring-qiime');
       equal(controller.$scaled.is(':checked'), false);
       equal(controller.isColoringContinuous(), false);
+      equal(controller.$searchBar.val(), '');
+      equal(controller.$searchBar.prop('hidden'), false);
     });
 
     test('Test getDiscretePaletteColor(map)', function() {
@@ -656,17 +693,53 @@ requirejs([
       '#e5c494', '#b3b3b3']);
     });
 
-    asyncTest('Test setEnabled', function() {
+    test('Test setEnabled', function() {
       var container = $('<div style="height:11px; width:12px"></div>');
-      var controller = new ColorViewController(
+      var controller = new ColorViewController(new UIState(),
         container, this.sharedDecompositionViewDict);
 
-      $(function() {
-        // disable
-        controller.setEnabled(false);
+      // disable
+      controller.setEnabled(false);
 
-        equal(controller.$colormapSelect.is(':disabled'), true);
-        equal(controller.$scaled.is(':disabled'), true);
+      equal(controller.$colormapSelect.is(':disabled'), true);
+      equal(controller.$scaled.is(':disabled'), true);
+      equal(controller.$searchBar.prop('hidden'), true);
+    });
+
+    /**
+     *
+     * Test large dataset.
+     *
+     */
+    asyncTest('Test large dataset', function() {
+      var coords = [], metadata = [];
+      for (var i = 0; i < 1001; i++) {
+        coords.push([Math.random(), Math.random(), Math.random(),
+                     Math.random()]);
+        metadata.push([i, 'b ' + Math.random(), 'c ' + Math.random()]);
+      }
+
+      var data = {coordinates: coords, percents_explained: [45, 35, 15, 5],
+                  sample_ids: _.range(1001), name: 'pcoa'};
+
+      var d = new DecompositionModel(data, ['SampleID', 'foo', 'bar'],
+                                     metadata);
+      var mm = new MultiModel({'scatter': d});
+      var state = new UIState();
+      var dv = new DecompositionView(mm, 'scatter', state);
+      var container = $('<div id="does-not-exist"></div>');
+      // create a dummy category selection callback
+      var options = {'categorySelectionCallback': function() {}};
+      var attr = new ColorViewController(state, container, {'scatter': dv});
+      $(function() {
+        // Controllers should be enabled
+        equal(attr.enabled, false);
+        equal(attr.$select.val(), null);
+        equal(attr.$select.is(':disabled'), false);
+        equal(attr.$colormapSelect.is(':disabled'), true);
+        equal(attr.$scaled.is(':disabled'), true);
+        equal(attr.$searchBar.val(), '');
+        equal(attr.$searchBar.is(':disabled'), true);
 
         start(); // qunit
       });
@@ -690,11 +763,13 @@ requirejs([
 
       var d = new DecompositionModel(data, ['SampleID', 'foo', 'bar'],
                                      metadata);
-      var dv = new DecompositionView(d);
+      var mm = new MultiModel({'scatter': d});
+      var state = new UIState();
+      var dv = new DecompositionView(mm, 'scatter', state);
       var container = $('<div id="does-not-exist"></div>');
       // create a dummy category selection callback
       var options = {'categorySelectionCallback': function() {}};
-      var attr = new ColorViewController(container, {'scatter': dv});
+      var attr = new ColorViewController(state, container, {'scatter': dv});
       $(function() {
         // Controllers should be enabled
         equal(attr.enabled, false);
@@ -702,41 +777,8 @@ requirejs([
         equal(attr.$select.is(':disabled'), false);
         equal(attr.$colormapSelect.is(':disabled'), true);
         equal(attr.$scaled.is(':disabled'), true);
-
-        start(); // qunit
-      });
-    });
-
-    /**
-     *
-     * Test large dataset.
-     *
-     */
-    asyncTest('Test large dataset', function() {
-      var coords = [], metadata = [];
-      for (var i = 0; i < 1001; i++) {
-        coords.push([Math.random(), Math.random(), Math.random(),
-                     Math.random()]);
-        metadata.push([i, 'b ' + Math.random(), 'c ' + Math.random()]);
-      }
-
-      var data = {coordinates: coords, percents_explained: [45, 35, 15, 5],
-                  sample_ids: _.range(1001), name: 'pcoa'};
-
-      var d = new DecompositionModel(data, ['SampleID', 'foo', 'bar'],
-                                     metadata);
-      var dv = new DecompositionView(d);
-      var container = $('<div id="does-not-exist"></div>');
-      // create a dummy category selection callback
-      var options = {'categorySelectionCallback': function() {}};
-      var attr = new ColorViewController(container, {'scatter': dv});
-      $(function() {
-        // Controllers should be enabled
-        equal(attr.enabled, false);
-        equal(attr.$select.val(), null);
-        equal(attr.$select.is(':disabled'), false);
-        equal(attr.$colormapSelect.is(':disabled'), true);
-        equal(attr.$scaled.is(':disabled'), true);
+        equal(attr.$searchBar.val(), '');
+        equal(attr.$searchBar.is(':disabled'), true);
 
         start(); // qunit
       });

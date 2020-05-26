@@ -3,8 +3,9 @@ define([
     'underscore',
     'three',
     'shapes',
-    'draw'
-], function($, _, THREE, shapes, draw) {
+    'draw',
+    'multi-model'
+], function($, _, THREE, shapes, draw, multiModel) {
   var makeArrow = draw.makeArrow;
   var makeLineCollection = draw.makeLineCollection;
 /**
@@ -14,31 +15,37 @@ define([
  * Contains all the information on how the model is being presented to the
  * user.
  *
- * @param {DecompositionModel} decomp a DecompositionModel object that will be
- * represented on screen.
- * @param {Bool} asPointCloud Whether or not the underlying view is represented
- * using a point cloud. This argument is exposed to facilitate testing.
+ * @param {MultiModel} multiModel - A multi model object with all models
+ * @param {string} modelKey - The key referencing the target model
+ *                            within the multiModel
  *
  * @return {DecompositionView}
  * @constructs DecompositionView
  *
  */
-function DecompositionView(decomp, asPointCloud) {
+function DecompositionView(multiModel, modelKey, uiState) {
   /**
    * The decomposition model that the view represents.
    * @type {DecompositionModel}
    */
-  this.decomp = decomp;
+  this.decomp = multiModel.models[modelKey];
+
+  /**
+   * All models in the current scene and global metrics about them
+   * @type {MultiModel}
+   */
+  this.allModels = multiModel;
+
   /**
    * Number of samples represented in the view.
    * @type {integer}
    */
-  this.count = decomp.length;
+  this.count = this.decomp.length;
   /**
    * Top visible dimensions
    * @type {integer[]}
    */
-  // make sure we only use at most 3 elements
+  // make sure we only use at most 3 elements for scatter and arrow plots
   this.visibleDimensions = _.range(this.decomp.dimensions).slice(0, 3);
   /**
    * Orientation of the axes, `-1` means the axis is flipped, `1` means the
@@ -63,15 +70,36 @@ function DecompositionView(decomp, asPointCloud) {
    */
   this.backgroundColor = '#000000';
   /**
-   * Tube objects on screen (used for animations)
+   * Static tubes objects covering an entire trajectory.
+   * Can use setDrawRange on the underlying geometry to display
+   * just part of the trajectory.
    * @type {THREE.Mesh[]}
    */
-  this.tubes = [];
+  this.staticTubes = [];
+  /**
+   * Dynamic tubes covering the final tube segment of a trajectory
+   * Must be rebuilt each frame by the animations controller
+   * @type {THREE.Mesh[]}
+   */
+  this.dynamicTubes = [];
   /**
    * Array of THREE.Mesh objects on screen (represent samples).
    * @type {THREE.Mesh[]}
    */
   this.markers = [];
+
+  /**
+   * Meshes to be swapped out of scene when markers are modified.
+   * @type {THREE.Mesh[]}
+   */
+  this.oldMarkers = [];
+
+  /**
+   * Flag indicating old markers must be removed from the scene tree.
+   * @type {boolean}
+   */
+  this.needsSwapMarkers = false;
+
   /**
    * Array of THREE.Mesh objects on screen (represent confidence intervals).
    * @type {THREE.Mesh[]}
@@ -85,28 +113,41 @@ function DecompositionView(decomp, asPointCloud) {
   this.lines = {'left': null, 'right': null};
 
   /**
-   * Whether or not the view relies on a PointCloud to display the data.
-   * @type {Bool}
+   * The shared state for the UI
+   * @type {UIState}
    */
-  Object.defineProperty(this, 'usesPointCloud', {
-    value: (this.decomp.length > 20000) || asPointCloud,
-    writable: false
-  });
+  this.UIState = uiState;
 
-  // setup this.markers and this.lines
-  if (this.usesPointCloud) {
+  //Register property changes
+  //Note that declaring var scope at the local scope is absolutely critical
+  //or callbacks will call into the wrong scope!
+  var scope = this;
+  this.UIState.registerProperty('view.viewType', function(evt) {
+    scope._initGeometry();
+  });
+}
+
+DecompositionView.prototype._initGeometry = function() {
+  this.oldMarkers = this.markers;
+  if (this.oldMarkers.length > 0)
+    this.needsSwapMarkers = true;
+  this.markers = [];
+
+  //TODO FIXME HACK:  Do we need to swap lines as well?
+  this.lines = {'left': null, 'right': null};
+
+  if (this.decomp.isScatterType() &&
+      (this.UIState['view.viewType'] === 'parallel-plot')) {
+    this._fastInitParallelPlot();
+  }
+  else if (this.UIState['view.usesPointCloud']) {
     this._fastInit();
   }
   else {
     this._initBaseView();
   }
-
-  /**
-   * True when changes have occured that require re-rendering of the canvas
-   * @type {boolean}
-   */
   this.needsUpdate = true;
-}
+};
 
 /**
  * Calculate the appropriate size for a geometry based on the first dimension's
@@ -118,6 +159,14 @@ DecompositionView.prototype.getGeometryFactor = function() {
   // geometries based on this factor.
   return (this.decomp.dimensionRanges.max[0] -
           this.decomp.dimensionRanges.min[0]) * 0.012;
+};
+
+/**
+ * Retrieve a shallow copy of concatenated static and dynamic tube arrays
+ * @type {THREE.Mesh[]}
+ */
+DecompositionView.prototype.getTubes = function() {
+  return this.staticTubes.concat(this.dynamicTubes);
 };
 
 /**
@@ -215,7 +264,7 @@ DecompositionView.prototype._fastInit = function() {
     throw new Error('Ellipsoids are not supported in fast mode');
   }
   if (this.decomp.isArrowType()) {
-    throw new Error('Only scatter types are supported in fast mode');
+    throw new Error('Only scatter type is supported in fast mode');
   }
 
   var positions, colors, scales, opacities, visibilities, geometry, cloud;
@@ -270,7 +319,8 @@ DecompositionView.prototype._fastInit = function() {
     'varying float vVisible;',
 
     'void main() {',
-      'if (vVisible > 0.0) {',
+      // remove objects when they might be "visible" but completely transparent
+      'if (vVisible > 0.0 && vOpacity > 0.0) {',
         'vec2 cxy = 2.0 * gl_PointCoord - 1.0;',
         'float delta = 0.0, alpha = 1.0, r = dot(cxy, cxy);',
 
@@ -338,6 +388,134 @@ DecompositionView.prototype._fastInit = function() {
 };
 
 /**
+ * Parallel plots closely mirroring the shader enabled _fastInit calls
+ */
+DecompositionView.prototype._fastInitParallelPlot = function()
+{
+  var positions, colors, opacities, visibilities, geometry, cloud;
+
+  // We're really just drawing a bunch of line strips...
+  // highly doubt shaders are necessary for this...
+  var vertexShader = [
+    'attribute vec3 color;',
+    'attribute float opacity;',
+    'attribute float visible;',
+
+    'varying vec3 vColor;',
+    'varying float vOpacity;',
+    'varying float vVisible;',
+
+    'void main() {',
+    '  vColor = color;',
+    '  vOpacity = opacity;',
+    '  vVisible = visible;',
+
+    '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+    '}'].join('\n');
+
+  var fragmentShader = [
+    'precision mediump float;',
+    'varying vec3 vColor;',
+    'varying float vOpacity;',
+    'varying float vVisible;',
+
+    'void main() {',
+    ' if (vVisible <= 0.0 || vOpacity <= 0.0)',
+    '   discard;',
+    ' gl_FragColor = vec4(vColor, vOpacity);',
+    '}'].join('\n');
+
+  var allDimensions = _.range(this.decomp.dimensions);
+
+  // We'll build the line strips as GL_LINES for simplicity, at least for now,
+  // by doubling up vertex positions at each of the intermediate axes.
+  var numPoints = (allDimensions.length * 2 - 2) * (this.decomp.length);
+  positions = new Float32Array(numPoints * 3);
+  colors = new Float32Array(numPoints * 3);
+  opacities = new Float32Array(numPoints);
+  visibilities = new Float32Array(numPoints);
+
+  var material = new THREE.ShaderMaterial({
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+    transparent: true
+  });
+
+  geometry = new THREE.BufferGeometry();
+  geometry.addAttribute('position', new THREE.BufferAttribute(positions, 3));
+  geometry.addAttribute('color', new THREE.BufferAttribute(colors, 3));
+  geometry.addAttribute('opacity', new THREE.BufferAttribute(opacities, 1));
+  geometry.addAttribute('visible', new THREE.BufferAttribute(visibilities, 1));
+
+  lines = new THREE.LineSegments(geometry, material);
+
+  var attributeIndex = 0;
+
+  for (var i = 0; i < this.decomp.length; i++)
+  {
+    var plottable = this.decomp.plottable[i];
+    // Each point in the model maps to (allDimensions.length * 2 - 2)
+    // positions due to the use of lines rather than line strips.
+    for (var j = 0; j < allDimensions.length; j++)
+    {
+      //normalize by global range bounds
+      var globalMin = this.allModels.dimensionRanges.min[allDimensions[j]];
+      var globalMax = this.allModels.dimensionRanges.max[allDimensions[j]];
+      var maxMinusMin = globalMax - globalMin;
+      var interpVal = (plottable.coordinates[j] - globalMin) / (maxMinusMin);
+      geometry.attributes.position.setXYZ(attributeIndex,
+                                        j,
+                                        interpVal,
+                                        0);
+
+      geometry.attributes.color.setXYZ(attributeIndex, 1, 0, 0);
+      geometry.attributes.visible.setX(attributeIndex, 1);
+      geometry.attributes.opacity.setX(attributeIndex, 1);
+      attributeIndex++;
+
+      //Because we are drawing all line strips at once using GL_LINES
+      //(which seemed easier than multiple line strip calls)
+      //it is necessary to duplicate the end points of each line.  But the
+      //duplicate points are only necessary for points in the middle of the
+      //line strip: the first point and last point of the strip are added once
+      //all of the points in the middle of the line strip must be duplicated.
+      if (j == 0 || j == allDimensions.length - 1)
+        continue;
+
+      geometry.attributes.position.setXYZ(attributeIndex,
+                                        j,
+                                        interpVal,
+                                        0);
+      geometry.attributes.color.setXYZ(attributeIndex, 1, 0, 0);
+      geometry.attributes.visible.setX(attributeIndex, 1);
+      geometry.attributes.opacity.setX(attributeIndex, 1);
+      attributeIndex++;
+    }
+  }
+
+  geometry.attributes.position.needsUpdate = true;
+  geometry.attributes.color.needsUpdate = true;
+  geometry.attributes.visible.needsUpdate = true;
+  geometry.attributes.opacity.needsUpdate = true;
+
+  this.markers.push(lines);
+};
+
+DecompositionView.prototype.getModelPointIndex = function(raytraceIndex,
+                                                          viewType)
+{
+  var allDimensions = _.range(this.decomp.dimensions);
+  var numPointsPerScatterPoint = (allDimensions.length * 2 - 2);
+
+  if (viewType === 'scatter') {
+    //Each point in the model maps to a single point in the mesh in scatter
+    return raytraceIndex;
+  }
+  else if (viewType === 'parallel-plot') {
+    return Math.floor(raytraceIndex / numPointsPerScatterPoint);
+  }
+};
+/**
  *
  * Get the number of visible elements
  *
@@ -346,11 +524,18 @@ DecompositionView.prototype._fastInit = function() {
  */
 DecompositionView.prototype.getVisibleCount = function() {
   var visible = 0;
-
-  if (this.usesPointCloud) {
+  if (this.UIState['view.viewType'] === 'parallel-plot') {
     var cloud = this.markers[0];
-
-    for (var i = 0; i < cloud.geometry.attributes.visible.count; i++) {
+    var attrVisibleCount = cloud.geometry.attributes.visible.count;
+    var numPoints = (this.decomp.dimensions * 2 - 2);
+    for (var i = 0; i < attrVisibleCount; i += numPoints) {
+      visible += (cloud.geometry.attributes.visible.getX(i) + 0);
+    }
+  }
+  else if (this.UIState['view.usesPointCloud']) {
+    var cloud = this.markers[0];
+    var attrVisibleCount = cloud.geometry.attributes.visible.count;
+    for (var i = 0; i < attrVisibleCount; i++) {
       visible += (cloud.geometry.attributes.visible.getX(i) + 0);
     }
   }
@@ -383,7 +568,8 @@ DecompositionView.prototype.updatePositions = function() {
     radius = this.getGeometryFactor();
   }
 
-  if (this.usesPointCloud) {
+  if (this.UIState['view.usesPointCloud'] &&
+      (this.UIState['view.viewType'] === 'scatter')) {
     var cloud = this.markers[0];
 
     this.decomp.apply(function(plottable) {
@@ -394,6 +580,10 @@ DecompositionView.prototype.updatePositions = function() {
         is2D ? 0 : plottable.coordinates[z] * scope.axesOrientation[2]);
     });
     cloud.geometry.attributes.position.needsUpdate = true;
+  }
+  else if (this.decomp.isScatterType() &&
+           (this.UIState['view.viewType'] === 'parallel-plot')) {
+    //TODO:  Do we need to do anything when axes are changed in parallel plots?
   }
   else if (this.decomp.isScatterType()) {
     this.decomp.apply(function(plottable) {
@@ -579,7 +769,7 @@ DecompositionView.prototype.flipVisibleDimension = function(index) {
 DecompositionView.prototype.setCategory = function(attributes,
                                                    setPlottableAttributes,
                                                    category) {
-  var scope = this, dataView = [], plottables;
+  var scope = this, dataView = [], plottables, i = 0;
 
   _.each(attributes, function(value, key) {
     /*
@@ -594,7 +784,9 @@ DecompositionView.prototype.setCategory = function(attributes,
       setPlottableAttributes(scope, value, plottables);
     }
 
-    dataView.push({category: key, value: value, plottables: plottables});
+    dataView.push({id: i, category: key, value: value,
+                   plottables: plottables});
+    i = i + 1;
   });
   this.needsUpdate = true;
 
@@ -660,7 +852,7 @@ DecompositionView.prototype.showEdgesForPlottables = function(plottables) {
  * 0xff0000, or a CSS color name like 'red', etc.
  * @param {Plottable[]} group An array of plottables for which the color should
  * be set. If this object is not provided, all the plottables in the view will
- * be have the color set.
+ * have the color set.
  */
 DecompositionView.prototype.setColor = function(color, group) {
   var idx, hasConfidenceIntervals, scope = this;
@@ -668,7 +860,8 @@ DecompositionView.prototype.setColor = function(color, group) {
   group = group || this.decomp.plottable;
   hasConfidenceIntervals = this.decomp.hasConfidenceIntervals();
 
-  if (this.usesPointCloud) {
+  if (this.UIState['view.usesPointCloud'] &&
+      (this.UIState['view.viewType'] === 'scatter')) {
     var cloud = this.markers[0];
     color = new THREE.Color(color);
 
@@ -677,6 +870,19 @@ DecompositionView.prototype.setColor = function(color, group) {
                                              color.r, color.g, color.b);
     });
     cloud.geometry.attributes.color.needsUpdate = true;
+  }
+  else if (this.UIState['view.viewType'] == 'parallel-plot' &&
+           this.decomp.isScatterType()) {
+    var lines = this.markers[0];
+    color = new THREE.Color(color);
+    var numPoints = (this.decomp.dimensions * 2 - 2);
+    group.forEach(function(plottable) {
+      var startIndex = plottable.idx * numPoints;
+      var endIndex = (plottable.idx + 1) * numPoints;
+      for (var i = startIndex; i < endIndex; i++)
+        lines.geometry.attributes.color.setXYZ(i, color.r, color.g, color.b);
+    });
+    lines.geometry.attributes.color.needsUpdate = true;
   }
   else if (this.decomp.isScatterType()) {
     group.forEach(function(plottable) {
@@ -711,13 +917,26 @@ DecompositionView.prototype.setVisibility = function(visible, group) {
 
   hasConfidenceIntervals = this.decomp.hasConfidenceIntervals();
 
-  if (this.usesPointCloud) {
+  if (this.UIState['view.usesPointCloud'] &&
+      (this.UIState['view.viewType'] === 'scatter')) {
     var cloud = this.markers[0];
 
     _.each(group, function(plottable) {
       cloud.geometry.attributes.visible.setX(plottable.idx, visible * 1);
     });
     cloud.geometry.attributes.visible.needsUpdate = true;
+  }
+  else if (this.UIState['view.viewType'] == 'parallel-plot' &&
+           this.decomp.isScatterType()) {
+    var lines = this.markers[0];
+    var numPoints = (this.decomp.dimensions * 2 - 2);
+    _.each(group, function(plottable) {
+      var startIndex = plottable.idx * numPoints;
+      var endIndex = (plottable.idx + 1) * (numPoints);
+      for (i = startIndex; i < endIndex; i++)
+        lines.geometry.attributes.visible.setX(i, visible * 1);
+    });
+    lines.geometry.attributes.visible.needsUpdate = true;
   }
   else {
     _.each(group, function(plottable) {
@@ -757,13 +976,18 @@ DecompositionView.prototype.setScale = function(scale, group) {
 
   group = group || this.decomp.plottable;
 
-  if (this.usesPointCloud) {
+  if (this.UIState['view.usesPointCloud'] &&
+      (this.UIState['view.viewType'] === 'scatter')) {
     var cloud = this.markers[0];
 
     _.each(group, function(plottable) {
       cloud.geometry.attributes.scale.setX(plottable.idx, scale);
     });
     cloud.geometry.attributes.scale.needsUpdate = true;
+  }
+  else if (this.UIState['view.viewType'] == 'parallel-plot' &&
+           this.decomp.isScatterType()) {
+    //Nothing to do for parallel plots.
   }
   else {
     _.each(group, function(element) {
@@ -789,13 +1013,26 @@ DecompositionView.prototype.setOpacity = function(opacity, group) {
 
   group = group || this.decomp.plottable;
 
-  if (this.usesPointCloud) {
+  if (this.UIState['view.usesPointCloud'] &&
+      (this.UIState['view.viewType'] === 'scatter')) {
     var cloud = this.markers[0];
 
     _.each(group, function(plottable) {
       cloud.geometry.attributes.opacity.setX(plottable.idx, opacity);
     });
     cloud.geometry.attributes.opacity.needsUpdate = true;
+  }
+  else if (this.UIState['view.viewType'] == 'parallel-plot' &&
+           this.decomp.isScatterType()) {
+    var lines = this.markers[0];
+    var numPoints = (this.decomp.dimensions * 2 - 2);
+    _.each(group, function(plottable) {
+      var startIndex = plottable.idx * numPoints;
+      var endIndex = (plottable.idx + 1) * (numPoints);
+      for (var i = startIndex; i < endIndex; i++)
+        lines.geometry.attributes.opacity.setX(i, opacity);
+    });
+    lines.geometry.attributes.opacity.needsUpdate = true;
   }
   else {
     if (this.decomp.isScatterType()) {
@@ -853,7 +1090,7 @@ DecompositionView.prototype._buildVegaSpec = function() {
     Ring: 'circle',
     Square: 'square',
     Icosahedron: 'cross',
-    Star: 'cross',
+    Star: 'cross'
   };
 
   function viewMarkersAsVegaDataset(markers) {
@@ -868,8 +1105,8 @@ DecompositionView.prototype._buildVegaSpec = function() {
           color: rgbColor(marker.material.color),
           originalShape: marker.userData.shape,
           shape: getShape[marker.userData.shape],
-          scale: { x: marker.scale.x, y: marker.scale.y, },
-          opacity: marker.material.opacity,
+          scale: { x: marker.scale.x, y: marker.scale.y },
+          opacity: marker.material.opacity
         });
       }
     }
@@ -908,14 +1145,14 @@ DecompositionView.prototype._buildVegaSpec = function() {
     padding: 5,
     background: scope.backgroundColor,
     config: {
-      axis: { labelColor: scope.axesColor, titleColor: scope.axesColor, },
-      title: { color: scope.axesColor, },
+      axis: { labelColor: scope.axesColor, titleColor: scope.axesColor },
+      title: { color: scope.axesColor }
     },
     title: 'Emperor PCoA',
     data: [
       {
         name: 'metadata',
-        values: plottablesAsMetadata(model.plottable, model.md_headers),
+        values: plottablesAsMetadata(model.plottable, model.md_headers)
       },
       {
         name: 'points', values: viewMarkersAsVegaDataset(scope.markers),
@@ -925,28 +1162,28 @@ DecompositionView.prototype._buildVegaSpec = function() {
             from: 'metadata',
             key: model.md_headers[0],
             fields: ['id'],
-            as: ['metadata'],
+            as: ['metadata']
           }
-        ],
-      },
+        ]
+      }
     ],
     signals: [
       {
         name: 'width',
-        update: baseWidth + ' * ((' + rangeX[1] + ') - (' + rangeX[0] + '))',
+        update: baseWidth + ' * ((' + rangeX[1] + ') - (' + rangeX[0] + '))'
       },
       {
         name: 'height',
-        update: baseWidth + ' * ((' + rangeY[1] + ') - (' + rangeY[0] + '))',
-      },
+        update: baseWidth + ' * ((' + rangeY[1] + ') - (' + rangeY[0] + '))'
+      }
     ],
     scales: [
       { name: 'xScale', range: 'width', domain: [rangeX[0], rangeX[1]] },
       { name: 'yScale', range: 'height', domain: [rangeY[0], rangeY[1]] }
     ],
     axes: [
-      { orient: 'bottom', scale: 'xScale', title: model.axesLabels[axisX], },
-      { orient: 'left', scale: 'yScale', title: model.axesLabels[axisY], }
+      { orient: 'bottom', scale: 'xScale', title: model.axesLabels[axisX] },
+      { orient: 'left', scale: 'yScale', title: model.axesLabels[axisY] }
     ],
     marks: [
       {
@@ -954,20 +1191,32 @@ DecompositionView.prototype._buildVegaSpec = function() {
         from: {data: 'points'},
         encode: {
           enter: {
-            fill: { field: 'color', },
-            x: { scale: 'xScale', field: 'x', },
-            y: { scale: 'yScale', field: 'y', },
-            shape: { field: 'shape', },
-            size: { signal: 'datum.scale.x * datum.scale.y * 100', },
-            opacity: { field: 'opacity', },
+            fill: { field: 'color' },
+            x: { scale: 'xScale', field: 'x' },
+            y: { scale: 'yScale', field: 'y' },
+            shape: { field: 'shape' },
+            size: { signal: 'datum.scale.x * datum.scale.y * 100' },
+            opacity: { field: 'opacity' }
           },
           update: {
-            tooltip: { signal: 'datum.metadata' },
-          },
-        },
-      },
-    ],
+            tooltip: { signal: 'datum.metadata' }
+          }
+        }
+      }
+    ]
   };
+};
+
+/**
+ * Called as part of the swap operation to change out objects in the scene,
+ * this function atomically clears the swap flag, clears the old markers,
+ * and returns what the old markers were.
+ */
+DecompositionView.prototype.getAndClearOldMarkers = function() {
+  this.needsSwapMarkers = false;
+  var oldMarkers = this.oldMarkers;
+  this.oldMarkers = [];
+  return oldMarkers;
 };
 
 /**
