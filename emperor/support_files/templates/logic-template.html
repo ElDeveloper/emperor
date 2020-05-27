@@ -149,6 +149,43 @@ function($, model, EmperorController) {
       // any other code that needs to be executed when emperor is loaded should
       // go here
       ec.loadConfig(data.plot.settings);
+
+      var plotView = ec.sceneViews[0];
+
+      plotView.on('click', function(sampleName){
+        empress.colorSampleIDs([sampleName], [1, 0, 0]);
+
+        // 3 seconds before resetting
+        setTimeout(function(){
+          empress.resetTree();
+          empress.drawTree();
+        }, 2500)
+      });
+
+      plotView.on('select', function(sampleNames) {
+        var colorGroups = {}, color;
+        for(var i=0; i < sampleNames.length; i++) {
+          color = sampleNames[i].material.color.getHexString();
+          if (colorGroups[color] === undefined) {
+            colorGroups[color] = [];
+          }
+          colorGroups[color].push(sampleNames[i].name);
+        }
+        empress.colorSampleGroups(colorGroups);
+
+        // 3 seconds before resetting
+        setTimeout(function(){
+          empress.resetTree();
+          empress.drawTree();
+
+          sampleNames.forEach(function(sample) {
+            sample.material.emissive.set(0x000000);
+          })
+          plotView.needsUpdate = true;
+
+        }, 4000)
+
+      });
     }
   });
 
