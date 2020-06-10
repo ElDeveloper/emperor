@@ -590,6 +590,8 @@ define([
         view.staticTubes[i] = drawTrajectoryLineStatic(trajectory,
                                                         color,
                                                         radius);
+
+        // console.log('static tubes');
       }
 
       //Ensure static tube draw ranges are set to visible segment
@@ -612,6 +614,7 @@ define([
     if (this.UIState['view.viewType'] !== 'parallel-plot') {
       //Construct new dynamic tubes containing necessary
       //interpolated segment for the current frame
+      // console.log(scope.director.currentFrame);
       view.dynamicTubes = this.director.trajectories.map(function(trajectory) {
         var color = scope._colors[trajectory.metadataCategoryName] || 'red';
         var tube = drawTrajectoryLineDynamic(trajectory,

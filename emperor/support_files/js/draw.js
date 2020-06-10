@@ -19,29 +19,35 @@ define(['underscore', 'three', 'jquery'], function(_, THREE, $) {
    * @return {EmperorTrajectory}
    * @extends THREE.Curve
    */
-  THREE.EmperorTrajectory = THREE.Curve.create(
-      function(points) {
-        this.points = (points === undefined) ? [] : points;
-      },
+  function EmperorTrajectory(points) {
+    THREE.Curve.call(this);
 
-      function(t) {
-        var points = this.points;
-        var index = (points.length - 1) * t;
-        var floorIndex = Math.floor(index);
+    this.points = (points === undefined) ? [] : points;
 
-        if (floorIndex == points.length - 1) {
-          return points[floorIndex];
-        }
+    return this;
+  }
 
-        var floorPoint = points[floorIndex];
-        var ceilPoint = points[floorIndex + 1];
-
-        return floorPoint.clone().lerp(ceilPoint, index - floorIndex);
-      }
-      );
+  EmperorTrajectory.prototype = Object.create(THREE.Curve.prototype);
+  EmperorTrajectory.prototype.constructor = EmperorTrajectory;
 
   /** @private */
-  THREE.EmperorTrajectory.prototype.getUtoTmapping = function(u) {
+  EmperorTrajectory.prototype.getPoint = function ( t ) {
+    var points = this.points;
+    var index = (points.length - 1) * t;
+    var floorIndex = Math.floor(index);
+
+    if (floorIndex == points.length - 1) {
+      return points[floorIndex];
+    }
+
+    var floorPoint = points[floorIndex];
+    var ceilPoint = points[floorIndex + 1];
+
+    return floorPoint.clone().lerp(ceilPoint, index - floorIndex);
+  };
+
+  /** @private */
+  EmperorTrajectory.prototype.getUtoTmapping = function(u) {
     return u;
   };
 
@@ -289,6 +295,7 @@ define(['underscore', 'three', 'jquery'], function(_, THREE, $) {
 
     _trajectory = trajectory.representativeInterpolatedCoordinatesAtIndex(
                                                                   currentFrame);
+    // console.log(_trajectory);
     if (_trajectory === null || _trajectory.length == 0)
       return null;
 
@@ -301,7 +308,7 @@ define(['underscore', 'three', 'jquery'], function(_, THREE, $) {
                   _trajectory[index].y, _trajectory[index].z));
     }
 
-    path = new THREE.EmperorTrajectory(points);
+    path = new EmperorTrajectory(points);
 
     // the line will contain the two vertices and the described material
     // we increase the number of points to have a smoother transition on
@@ -340,7 +347,7 @@ define(['underscore', 'three', 'jquery'], function(_, THREE, $) {
                   _trajectory[index].y, _trajectory[index].z));
     }
 
-    var path = new THREE.EmperorTrajectory(allPoints);
+    var path = new EmperorTrajectory(allPoints);
 
     //Tubes are straight segments, but adding vertices along them might change
     //lighting effects under certain models and lighting conditions.

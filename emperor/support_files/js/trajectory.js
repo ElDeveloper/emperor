@@ -404,13 +404,14 @@ define([
     // not visibly different.
     //
     // Note: THREE.js won't display geometries with overlapping vertices,
-    // therefore we add a small amount of noise in the Z coordinate.
+    // therefore we add a small amount of noise to the coordinates.
     _.each(processedData, function(value, key) {
       out[key] = processedData[key];
       var first = processedData[key][0];
       if (first.value !== earliestSample) {
         out[key].unshift({'name': first.name, 'value': earliestSample,
-                          'x': first.x, 'y': first.y, 'z': first.z + 0.0001});
+                          'x': first.x + 0.001, 'y': first.y + 0.001,
+                          'z': first.z + 0.001});
       }
     });
 
