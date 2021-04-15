@@ -432,6 +432,7 @@ define([
     // hide the header row of the grid
     // http://stackoverflow.com/a/29827664/379593
     $(this.$body).find('.slick-header').css('display', 'none');
+    // inline-block;
 
     // subscribe to events when a cell is changed
     this.bodyGrid.onCellChange.subscribe(options.valueUpdatedCallback);

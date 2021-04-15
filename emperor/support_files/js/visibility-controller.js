@@ -4,8 +4,10 @@ define([
     'viewcontroller',
     'chroma',
     'slickformatters',
-    'slickeditors'
-], function($, _, ViewControllers, chroma, slickformatters, slickeditors) {
+    'slickeditors',
+    'slickcheckboxcolumn'
+], function($, _, ViewControllers, chroma, slickformatters, slickeditors,
+            slickcheckboxcolumn) {
 
   // we only use the base attribute class, no need to get the base class
   /** @private */
@@ -34,14 +36,27 @@ define([
     // Constant for width in slick-grid
     var SLICK_WIDTH = 25, scope = this;
 
+    console.log(Slick.CheckboxSelectColumn);
+
+    var column = new Slick.CheckboxSelectColumn({
+      id: 'title', name: '', field: 'value', cssClass: 'lolercoaster',
+      hideSelectAllCheckbox: false
+    });
+
+
     // Build the options dictionary
     var options = {'valueUpdatedCallback': function(e, args) {
+      console.log(e, args);
+
       var visible = args.item.value;
       var group = args.item.plottables;
       var element = scope.getView();
       scope.setPlottableAttributes(element, visible, group);
     },
       'categorySelectionCallback': function(evt, params) {
+
+        console.log(evt);
+
         var category = scope.$select.val();
 
         var decompViewDict = scope.getView();
@@ -60,14 +75,30 @@ define([
 
         scope.setSlickGridDataset(data);
       },
-      'slickGridColumn': {id: 'title', name: '', field: 'value',
-        sortable: false, maxWidth: SLICK_WIDTH,
-        minWidth: SLICK_WIDTH,
-        formatter: Slick.Formatters.Checkmark,
-        editor: Slick.Editors.Checkbox}};
+      'slickGridColumn': column.getColumnDefinition()
+    };
 
     EmperorAttributeABC.call(this, uiState, container, title, helpmenu,
         decompViewDict, options);
+
+    $(function() {
+
+      console.log(scope);
+      scope.$body.find('.slick-header').css('display', 'inline-block');
+
+      scope.bodyGrid.onSelectedRowsChanged.subscribe(function(event, args) {
+        // figure out a way how to grab the selected items
+
+        var visible = args.item.value;
+        var group = args.item.plottables;
+        var element = scope.getView();
+        scope.setPlottableAttributes(element, visible, group);
+
+      });
+
+      scope.bodyGrid.setSelectionModel(new Slick.RowSelectionModel({selectActiveRow: false}));
+      scope.bodyGrid.registerPlugin(column);
+    });
     return this;
   }
   VisibilityController.prototype = Object.create(EmperorAttributeABC.prototype);

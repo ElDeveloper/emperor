@@ -76,6 +76,12 @@ div.colorbox {
     background: none;
 }
 
+.slick-cell-checkboxsel {
+  background: #f0f0f0;
+  border-right-color: silver;
+  border-right-style: solid;
+}
+
 /*
  *
  * Used to show a helper when resizing the plot menu. See the call to

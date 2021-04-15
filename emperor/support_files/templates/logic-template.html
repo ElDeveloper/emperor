@@ -40,6 +40,8 @@ var emperorRequire = require.config({
   'slickformatters': '{{ base_url }}/vendor/js/slick.editors.min',
   'slickeditors': '{{ base_url }}/vendor/js/slick.formatters.min',
   'slickdataview': '{{ base_url }}/vendor/js/slick.dataview.min',
+  'slickcheckboxcolumn': '{{ base_url }}/vendor/js/slick.checkboxselectcolumn',
+  'slickrowselectionmodel': '{{ base_url }}/vendor/js/slick.rowselectionmodel',
 
   /* Emperor's objects */
   'util': '{{ base_url }}/js/util',
@@ -94,7 +96,8 @@ var emperorRequire = require.config({
   },
   'slickcore': ['jqueryui'],
   'slickgrid': ['slickcore', 'jquery_drag', 'slickformatters', 'slickeditors',
-                'slickdataview']
+                'slickdataview', 'slickcheckboxcolumn',
+                'slickrowselectionmodel']
 }
 });
 
